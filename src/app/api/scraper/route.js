@@ -44,7 +44,7 @@ async function scrapeFranceTravail(token) {
           contrat: o.typeContratLibelle ?? "N/A",
           source: "France Travail",
           keyword,
-          lien: o.apply_options?.[0]?.link ?? o.related_links?.[0]?.link ?? o.job_id ? `https://www.google.com/search?q=${encodeURIComponent(o.title + " " + o.company_name)}` : "#", 
+          lien: `https://www.google.com/search?q=${encodeURIComponent(o.title + " " + o.company_name + " emploi")}`,
           date: new Date().toLocaleDateString("fr-FR"),
         });
       }
