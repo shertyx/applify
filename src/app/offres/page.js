@@ -28,7 +28,7 @@ export default function Offres() {
   useEffect(() => { fetchOffres(); }, []);
 
   async function fetchOffres() {
-    const res = await fetch("/offres.json");
+    const res = await fetch("/api/offres");
     const data = await res.json();
     setOffres(data.offres || []);
     setLastUpdate(data.last_update);
