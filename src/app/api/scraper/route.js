@@ -99,6 +99,45 @@ async function scrapeGoogleJobs(keywords, location) {
   return offres;
 }
 
+async function scrapeJSearch(keywords, location) {
+  if (!process.env.JSEARCH_API_KEY) return [];
+  const offres = [];
+  for (const keyword of keywords.slice(0, 2)) {
+    try {
+      const query = encodeURIComponent(`${keyword} ${location}`);
+      const res = await fetch(
+        `https://jsearch.p.rapidapi.com/search?query=${query}&page=1&num_pages=1&country=fr&language=fr`,
+        {
+          headers: {
+            "X-RapidAPI-Key": process.env.JSEARCH_API_KEY,
+            "X-RapidAPI-Host": "jsearch.p.rapidapi.com",
+          },
+        }
+      );
+      const data = await res.json();
+      console.log(`[JS] "${keyword}": ${data.data?.length ?? 0} résultats`);
+      for (const o of data.data || []) {
+        offres.push({
+          id: `js-${o.job_id ?? Math.random()}`,
+          titre: o.job_title ?? "N/A",
+          entreprise: o.employer_name ?? "N/A",
+          lieu: [o.job_city, o.job_country].filter(Boolean).join(", ") || location,
+          contrat: o.job_employment_type ?? "N/A",
+          source: "JSearch",
+          keyword,
+          lien: o.job_apply_link ?? o.job_google_link ?? `https://www.google.com/search?q=${encodeURIComponent((o.job_title ?? keyword) + " " + (o.employer_name ?? "") + " emploi")}`,
+          date: o.job_posted_at_datetime_utc
+            ? new Date(o.job_posted_at_datetime_utc).toLocaleDateString("fr-FR")
+            : new Date().toLocaleDateString("fr-FR"),
+        });
+      }
+    } catch (e) {
+      console.error(`[JS] Erreur "${keyword}":`, e.message);
+    }
+  }
+  return offres;
+}
+
 export async function POST() {
   const session = await auth();
   if (!session?.user?.email) return Response.json({ success: false, error: "Non autorisé" }, { status: 401 });
@@ -114,12 +153,13 @@ export async function POST() {
     console.log(`[SCRAPER] User: ${session.user.email} | Keywords: ${keywords.join(", ")} | Location: ${location}`);
 
     const token = await getTokenFT();
-    const [ftOffres, gjOffres] = await Promise.all([
+    const [ftOffres, gjOffres, jsOffres] = await Promise.all([
       scrapeFranceTravail(token, keywords),
       scrapeGoogleJobs(keywords, location),
+      scrapeJSearch(keywords, location),
     ]);
 
-    const all = [...ftOffres, ...gjOffres];
+    const all = [...ftOffres, ...gjOffres, ...jsOffres];
     const seen = new Set();
     const unique = all.filter((o) => {
       if (seen.has(o.id)) return false;
@@ -137,6 +177,6 @@ export async function POST() {
 
     return Response.json({ success: true, total: unique.length });
   } catch (error) {
-    return Response.json({ success: false, error: error.message }, { status: 500 });
+    return Response.json({ success: false, error: "Erreur lors du scraping." }, { status: 500 });
   }
 }
