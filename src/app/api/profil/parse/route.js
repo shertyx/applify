@@ -1,5 +1,4 @@
 import { auth } from "@/auth";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(request) {
   const session = await auth();
@@ -10,24 +9,11 @@ export async function POST(request) {
     const file = formData.get("file");
     if (!file) return Response.json({ error: "Aucun fichier" }, { status: 400 });
 
-    const bytes = await file.arrayBuffer();
-    const base64 = Buffer.from(bytes).toString("base64");
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const pdfParse = (await import("pdf-parse/lib/pdf-parse.js")).default;
+    const result = await pdfParse(buffer);
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-    const result = await model.generateContent([
-      {
-        inlineData: {
-          mimeType: "application/pdf",
-          data: base64,
-        },
-      },
-      "Extrais tout le texte de ce CV exactement tel quel, sans résumé ni reformulation. Garde la structure originale.",
-    ]);
-
-    const text = result.response.text().trim();
-    return Response.json({ text });
+    return Response.json({ text: result.text.trim() });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
