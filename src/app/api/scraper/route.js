@@ -72,7 +72,7 @@ async function scrapeFranceTravail(token, keywords, location) {
   for (const keyword of keywords) {
     try {
       const res = await fetch(
-        `https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search?motsCles=${encodeURIComponent(keyword)}&nbResultats=20`,
+        `https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search?motsCles=${encodeURIComponent(keyword + " " + ville)}&nbResultats=20`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       await redis.incr("quota:francetravail");
@@ -105,9 +105,10 @@ async function scrapeGoogleJobs(keywords, location) {
   for (const keyword of keywords.slice(0, 3)) {
     try {
       const res = await fetch(
-        `https://serpapi.com/search.json?engine=google_jobs&q=${encodeURIComponent(keyword + " " + location)}&hl=fr&api_key=${process.env.SERP_API_KEY}`
+        `https://serpapi.com/search.json?engine=google_jobs&q=${encodeURIComponent(keyword + " " + location)}&hl=fr&gl=fr&api_key=${process.env.SERP_API_KEY}`
       );
       const data = await res.json();
+      console.log(`[GJ] "${keyword}": ${data.jobs_results?.length ?? 0} résultats, error=${data.error ?? "none"}`);
       for (const o of data.jobs_results || []) {
         offres.push({
           id: `gj-${o.job_id ?? Math.random()}`,
