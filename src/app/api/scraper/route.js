@@ -120,7 +120,10 @@ Réponds UNIQUEMENT avec un tableau JSON de 5 strings, sans markdown. Ex: ["Data
     const keywords = JSON.parse(text);
     if (Array.isArray(keywords) && keywords.length > 0) {
       console.log(`[KEYWORDS] IA: ${keywords.join(", ")}`);
-      await redis.incr("quota:gemini");
+      // Compteur journalier Gemini (TTL 24h)
+      const gKey = "quota:gemini:daily";
+      await redis.incr(gKey);
+      await redis.expire(gKey, 86400);
       await redis.set(cacheKey, keywords, { ex: 60 * 60 * 24 * 7 }); // cache 7 jours
       return keywords;
     }
@@ -171,7 +174,10 @@ async function scrapeFranceTravail(token, keywords, location) {
         `https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search?motsCles=${encodeURIComponent(keyword + " " + ville)}&nbResultats=20`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      await redis.incr("quota:francetravail:calls");
+      // Compteur journalier FT (TTL 24h pour reset automatique)
+      const ftKey = "quota:francetravail:daily";
+      await redis.incr(ftKey);
+      await redis.expire(ftKey, 86400);
       const text = await res.text();
       if (!text) { console.log(`[FT] "${keyword}": réponse vide (status ${res.status})`); continue; }
       const data = JSON.parse(text);

@@ -48,6 +48,8 @@ TON : ${ton}
 Rédige une lettre courte et percutante (~250 mots). Pas de formules bateau. Commence directement par le corps de la lettre sans entête postal. Termine par une formule de politesse.`;
 
     const result = await model.generateContent(prompt);
+    const gKey = "quota:gemini:daily";
+    await redis.incr(gKey); await redis.expire(gKey, 86400);
     const lettre = result.response.text();
     return Response.json({ lettre });
   } catch (error) {

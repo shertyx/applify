@@ -48,6 +48,8 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks :
 {"score": 75, "competences_ok": ["Python","SQL"], "competences_manquantes": ["Spark"], "resume": "3-4 phrases sur le match, points forts et points à améliorer."}`;
 
     const result = await model.generateContent(prompt);
+    const gKey = "quota:gemini:daily";
+    await redis.incr(gKey); await redis.expire(gKey, 86400);
     const text = result.response.text();
     const clean = text.replace(/```json|```/g, "").trim();
     const data = JSON.parse(clean);

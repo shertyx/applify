@@ -162,10 +162,10 @@ export default function Offres() {
       {quota && (
         <div className="animate-in mobile-wrap" style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
           {[
-            { label: "France Travail", data: quota.franceTravail, color: "#58a6ff", type: "offres" },
+            { label: "France Travail", data: quota.franceTravail, color: "#58a6ff", type: "quota" },
             { label: "SerpAPI",        data: quota.googleJobs,    color: "#3fb950", type: "quota" },
             { label: "JSearch",        data: quota.jsearch,       color: "#bc8cff", type: "quota" },
-            { label: "Gemini",         data: quota.gemini,        color: "#d29922", type: "calls" },
+            { label: "Gemini",         data: quota.gemini,        color: "#d29922", type: "quota" },
           ].map(({ label, data, color, type }) => {
             if (!data) return null;
             const pct = type === "quota" && data.limit ? Math.round((data.remaining ?? 0) / data.limit * 100) : null;

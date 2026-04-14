@@ -43,6 +43,8 @@ Réponds UNIQUEMENT en JSON valide sans markdown :
 {"score": 75, "raison": "Une phrase courte expliquant le score."}`;
 
     const result = await model.generateContent(prompt);
+    const gKey = "quota:gemini:daily";
+    await redis.incr(gKey); await redis.expire(gKey, 86400);
     const text = result.response.text().replace(/```json|```/g, "").trim();
     const data = JSON.parse(text);
     return Response.json(data);

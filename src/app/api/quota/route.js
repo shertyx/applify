@@ -26,13 +26,15 @@ export async function GET() {
   const jsearchQuota = await redis.get("quota:jsearch");
   if (jsearchQuota) quota.jsearch = jsearchQuota;
 
-  // France Travail — nombre d'offres trouvées au dernier scraping
-  const ftData = await redis.get("quota:francetravail");
-  quota.franceTravail = ftData ?? { count: 0 };
+  // France Travail — appels journaliers (reset auto toutes les 24h)
+  const ftUsed = await redis.get("quota:francetravail:daily") ?? 0;
+  const FT_DAILY_LIMIT = 500;
+  quota.franceTravail = { remaining: FT_DAILY_LIMIT - ftUsed, limit: FT_DAILY_LIMIT };
 
-  // Gemini — compteur stocké dans Redis
-  const geminiUsed = await redis.get("quota:gemini");
-  quota.gemini = { used: geminiUsed ?? 0 };
+  // Gemini — appels journaliers (free tier = 1500 req/jour)
+  const geminiUsed = await redis.get("quota:gemini:daily") ?? 0;
+  const GEMINI_DAILY_LIMIT = 1500;
+  quota.gemini = { remaining: GEMINI_DAILY_LIMIT - geminiUsed, limit: GEMINI_DAILY_LIMIT };
 
   return Response.json(quota);
 }
