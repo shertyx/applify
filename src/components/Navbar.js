@@ -55,6 +55,8 @@ export default function Navbar() {
   const { data: session } = useSession();
   const entretiens = candidatures.filter((c) => c.statut === "interview").length;
 
+  if (!session) return null;
+
   return (
     <nav style={{
       background: "var(--bg-secondary)",
