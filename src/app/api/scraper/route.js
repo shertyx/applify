@@ -11,51 +11,124 @@ const redis = new Redis({
 const DEFAULT_KEYWORDS = ["data analyst", "data engineer", "machine learning engineer", "AI engineer"];
 const DEFAULT_LOCATION = "Paris, France";
 
+function simpleKeywordFallback(poste) {
+  const base = poste.trim();
+  const stripped = base.replace(/\b(junior|senior|lead|chief|head|stagiaire|alternance|apprenti)\b/gi, "").replace(/\s+/g, " ").trim();
+  return [...new Set([base, stripped, stripped + " junior", stripped + " senior", stripped + " manager"])].filter(Boolean).slice(0, 5);
+}
+
 function fallbackKeywords(poste) {
   const base = poste.trim();
-  // Retirer les mots de séniorité pour avoir le titre brut
   const stripped = base.replace(/\b(junior|senior|lead|chief|head|stagiaire|alternance|apprenti)\b/gi, "").replace(/\s+/g, " ").trim();
   const keywords = new Set([base, stripped].filter(Boolean));
-  // Ajouter variante anglaise pour titres courants
   const translations = {
-    "data analyst": ["Data Analyst", "Business Intelligence Analyst", "BI Analyst", "Data Scientist"],
-    "data engineer": ["Data Engineer", "Big Data Engineer", "ETL Developer", "Data Pipeline Engineer"],
-    "développeur": ["Développeur", "Software Engineer", "Developer", "Software Developer"],
-    "ingénieur ia": ["AI Engineer", "Machine Learning Engineer", "ML Engineer", "IA Engineer"],
-    "devops": ["DevOps Engineer", "SRE", "Infrastructure Engineer", "Cloud Engineer"],
-    "product manager": ["Product Manager", "Chef de produit", "PO", "Product Owner"],
-    "marketing digital": ["Digital Marketing Manager", "Marketing Manager", "Responsable Marketing Digital"],
+    // Data
+    "data analyst":       ["Data Analyst", "Business Analyst", "BI Analyst", "Data Scientist"],
+    "data scientist":     ["Data Scientist", "ML Engineer", "Data Analyst", "Research Scientist"],
+    "data engineer":      ["Data Engineer", "Big Data Engineer", "ETL Developer", "Data Architect"],
+    "data manager":       ["Data Manager", "Data Analyst", "Data Governance", "Chief Data Officer"],
+    // IA / ML
+    "machine learning":   ["Machine Learning Engineer", "ML Engineer", "AI Engineer", "Data Scientist"],
+    "ingénieur ia":       ["AI Engineer", "Machine Learning Engineer", "Deep Learning Engineer"],
+    "intelligence artificielle": ["AI Engineer", "Machine Learning Engineer", "Data Scientist"],
+    // Dev
+    "développeur web":    ["Web Developer", "Frontend Developer", "Full Stack Developer", "Software Engineer"],
+    "développeur full":   ["Full Stack Developer", "Software Engineer", "Web Developer"],
+    "développeur front":  ["Frontend Developer", "React Developer", "UI Developer", "Frontend Engineer"],
+    "développeur back":   ["Backend Developer", "Software Engineer", "Node.js Developer", "API Developer"],
+    "développeur":        ["Software Developer", "Software Engineer", "Developer", "Programmer"],
+    "ingénieur logiciel": ["Software Engineer", "Software Developer", "Backend Engineer"],
+    "ingénieur":          ["Software Engineer", "Engineer", "Developer", "Tech Lead"],
+    // Cloud / DevOps
+    "devops":             ["DevOps Engineer", "SRE", "Platform Engineer", "Cloud Engineer"],
+    "cloud":              ["Cloud Engineer", "AWS Engineer", "Azure Engineer", "DevOps Engineer"],
+    "sre":                ["SRE", "DevOps Engineer", "Platform Engineer", "Infrastructure Engineer"],
+    // Cyber
+    "cybersécurité":      ["Cybersecurity Engineer", "Security Analyst", "Pentester", "SOC Analyst"],
+    "sécurité":           ["Security Engineer", "Cybersecurity Analyst", "SOC Analyst"],
+    // Product / Management
+    "product manager":    ["Product Manager", "Product Owner", "Chef de produit", "PO"],
+    "product owner":      ["Product Owner", "Product Manager", "Scrum Master", "Agile Coach"],
+    "chef de projet":     ["Project Manager", "Chef de projet", "Program Manager", "Scrum Master"],
+    "scrum master":       ["Scrum Master", "Agile Coach", "Product Owner", "Project Manager"],
+    // Marketing
+    "marketing digital":  ["Digital Marketing Manager", "Marketing Manager", "Growth Hacker", "SEO Manager"],
+    "marketing":          ["Marketing Manager", "Marketing Specialist", "Brand Manager", "Growth Manager"],
+    "seo":                ["SEO Manager", "SEO Specialist", "Digital Marketing", "Content Manager"],
+    "community manager":  ["Community Manager", "Social Media Manager", "Content Creator"],
+    // Design
+    "ux":                 ["UX Designer", "Product Designer", "UI/UX Designer", "UX Researcher"],
+    "ui designer":        ["UI Designer", "Product Designer", "Frontend Developer", "Graphic Designer"],
+    "graphiste":          ["Graphic Designer", "Visual Designer", "UI Designer", "Creative Designer"],
+    // Finance / Compta
+    "comptable":          ["Comptable", "Accountant", "Financial Analyst", "Contrôleur de gestion"],
+    "finance":            ["Financial Analyst", "Finance Manager", "Contrôleur de gestion", "CFO"],
+    "contrôleur":         ["Contrôleur de gestion", "Financial Controller", "Business Controller"],
+    // RH
+    "ressources humaines": ["HR Manager", "RH", "Talent Acquisition", "Recruiter"],
+    "recrutement":        ["Recruiter", "Talent Acquisition", "HR Manager", "Sourcer"],
+    // Commercial / Ventes
+    "commercial":         ["Sales Manager", "Business Developer", "Account Manager", "Commercial"],
+    "business developer": ["Business Developer", "Sales Manager", "Account Executive", "BDR"],
+    "account manager":    ["Account Manager", "Customer Success", "Sales Manager", "KAM"],
   };
+
   const lower = stripped.toLowerCase();
+  let matched = false;
   for (const [key, vals] of Object.entries(translations)) {
-    if (lower.includes(key)) { vals.forEach((v) => keywords.add(v)); break; }
+    if (lower.includes(key)) {
+      vals.forEach((v) => keywords.add(v));
+      matched = true;
+      break;
+    }
   }
+
+  // Fallback générique : variantes avec niveaux si pas de mapping
+  if (!matched) {
+    keywords.add(stripped + " junior");
+    keywords.add(stripped + " senior");
+    keywords.add(stripped + " manager");
+  }
+
   const result = [...keywords].slice(0, 5);
   console.log(`[KEYWORDS] Fallback: ${result.join(", ")}`);
   return result;
 }
 
-async function generateKeywords(profil) {
+async function generateKeywords(profil, userEmail) {
   if (!profil?.poste) return DEFAULT_KEYWORDS;
+
+  // Cache Redis basé sur le poste — évite de rappeler Gemini à chaque scraping
+  const cacheKey = `keywords:${userEmail}:${Buffer.from(profil.poste).toString("base64").slice(0, 20)}`;
+  const cached = await redis.get(cacheKey);
+  if (Array.isArray(cached) && cached.length > 0) {
+    console.log(`[KEYWORDS] Cache: ${cached.join(", ")}`);
+    return cached;
+  }
+
+  // Appel Gemini (une seule fois, puis mis en cache 7 jours)
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    const prompt = `Tu es un expert RH. Génère 5 intitulés de poste variés pour rechercher des offres d'emploi correspondant à ce profil.
+    const prompt = `Tu es un expert RH. Génère 5 intitulés de poste variés (français ET anglais) pour trouver un maximum d'offres d'emploi pour ce profil.
 Poste : ${profil.poste}
 ${profil.cv ? `CV (extrait) : ${profil.cv.slice(0, 500)}` : ""}
 
-Réponds UNIQUEMENT avec un tableau JSON de 5 strings, sans markdown. Ex: ["Développeur React","Frontend Engineer","Web Developer","UI Developer","JavaScript Developer"]`;
+Réponds UNIQUEMENT avec un tableau JSON de 5 strings, sans markdown. Ex: ["Data Analyst","Business Analyst","BI Analyst","Analyste de données","Data Scientist"]`;
     const result = await model.generateContent(prompt);
     const text = result.response.text().replace(/```json|```/g, "").trim();
     const keywords = JSON.parse(text);
     if (Array.isArray(keywords) && keywords.length > 0) {
-      console.log(`[KEYWORDS] Générés par IA: ${keywords.join(", ")}`);
+      console.log(`[KEYWORDS] IA: ${keywords.join(", ")}`);
       await redis.incr("quota:gemini");
+      await redis.set(cacheKey, keywords, { ex: 60 * 60 * 24 * 7 }); // cache 7 jours
       return keywords;
     }
   } catch (e) {
-    console.error(`[KEYWORDS] Gemini indisponible (${e.message?.slice(0, 50)}), fallback local.`);
+    console.error(`[KEYWORDS] Gemini indisponible (${e.message?.slice(0, 60)}), fallback.`);
   }
+
+  // Fallback si Gemini échoue : dictionnaire de synonymes
   return fallbackKeywords(profil.poste);
 }
 
@@ -223,7 +296,7 @@ export async function POST() {
 
   try {
     const profil = await redis.get(`profil:${session.user.email}`);
-    const keywords = await generateKeywords(profil);
+    const keywords = await generateKeywords(profil, session.user.email);
     const location = getLocationFromProfile(profil);
 
     console.log(`[SCRAPER] User: ${session.user.email} | Keywords: ${keywords.join(", ")} | Location: ${location}`);
