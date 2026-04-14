@@ -1,19 +1,38 @@
 import { Redis } from "@upstash/redis";
 import { auth } from "@/auth";
 import { limiters, checkRateLimit } from "@/lib/ratelimit";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL,
   token: process.env.KV_REST_API_TOKEN,
 });
 
-const DEFAULT_KEYWORDS = ["data analyst", "ingenieur IA", "data engineer", "machine learning"];
-const DEFAULT_LOCATION = "Lille, France";
+const DEFAULT_KEYWORDS = ["data analyst", "data engineer", "machine learning engineer", "AI engineer"];
+const DEFAULT_LOCATION = "Paris, France";
 
-function getKeywordsFromProfile(profil) {
+async function generateKeywords(profil) {
   if (!profil?.poste) return DEFAULT_KEYWORDS;
-  const poste = profil.poste.trim();
-  return [poste, poste + " junior", poste + " senior"];
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const prompt = `Tu es un expert RH. Génère 5 intitulés de poste variés pour rechercher des offres d'emploi correspondant à ce profil.
+Poste : ${profil.poste}
+${profil.cv ? `CV (extrait) : ${profil.cv.slice(0, 500)}` : ""}
+
+Réponds UNIQUEMENT avec un tableau JSON de 5 strings, sans markdown. Ex: ["Développeur React","Frontend Engineer","Web Developer","UI Developer","JavaScript Developer"]`;
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().replace(/```json|```/g, "").trim();
+    const keywords = JSON.parse(text);
+    if (Array.isArray(keywords) && keywords.length > 0) {
+      console.log(`[KEYWORDS] Générés: ${keywords.join(", ")}`);
+      return keywords;
+    }
+  } catch (e) {
+    console.error("[KEYWORDS] Erreur Gemini:", e.message);
+  }
+  // Fallback simple si Gemini échoue
+  return [profil.poste.trim()];
 }
 
 function getLocationFromProfile(profil) {
@@ -79,7 +98,7 @@ async function scrapeFranceTravail(token, keywords) {
 
 async function scrapeGoogleJobs(keywords, location) {
   const offres = [];
-  for (const keyword of keywords.slice(0, 2)) {
+  for (const keyword of keywords.slice(0, 3)) {
     try {
       const res = await fetch(
         `https://serpapi.com/search.json?engine=google_jobs&q=${encodeURIComponent(keyword + " " + location)}&hl=fr&api_key=${process.env.SERP_API_KEY}`
@@ -113,7 +132,7 @@ async function scrapeJSearch(keywords, location) {
   // Extraire juste le pays (ex: "Lille, France" → "France")
   const country = location.includes(",") ? location.split(",").pop().trim() : location;
   const offres = [];
-  for (const keyword of keywords.slice(0, 2)) {
+  for (const keyword of keywords.slice(0, 3)) {
     try {
       const query = encodeURIComponent(keyword);
       const url = `https://jsearch.p.rapidapi.com/search?query=${query}&page=1&num_pages=1`;
@@ -165,7 +184,7 @@ export async function POST() {
 
   try {
     const profil = await redis.get(`profil:${session.user.email}`);
-    const keywords = getKeywordsFromProfile(profil);
+    const keywords = await generateKeywords(profil);
     const location = getLocationFromProfile(profil);
 
     console.log(`[SCRAPER] User: ${session.user.email} | Keywords: ${keywords.join(", ")} | Location: ${location}`);
