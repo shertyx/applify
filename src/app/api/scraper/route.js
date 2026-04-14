@@ -42,6 +42,10 @@ async function getTokenFT() {
 }
 
 async function scrapeFranceTravail(token, keywords) {
+  if (!token) {
+    console.error("[FT] Token manquant, skip.");
+    return [];
+  }
   const offres = [];
   for (const keyword of keywords) {
     try {
@@ -164,6 +168,7 @@ export async function POST() {
       scrapeJSearch(keywords, location),
     ]);
 
+    console.log(`[SCRAPER] FT=${ftOffres.length} GJ=${gjOffres.length} JS=${jsOffres.length}`);
     const all = [...ftOffres, ...gjOffres, ...jsOffres];
     const seen = new Set();
     const unique = all.filter((o) => {
