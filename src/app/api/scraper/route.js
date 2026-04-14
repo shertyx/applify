@@ -115,7 +115,7 @@ async function scrapeJSearch(keywords, location) {
   const offres = [];
   for (const keyword of keywords.slice(0, 2)) {
     try {
-      const query = encodeURIComponent(`${keyword} in ${country}`);
+      const query = encodeURIComponent(keyword);
       const url = `https://jsearch.p.rapidapi.com/search?query=${query}&page=1&num_pages=1`;
       const res = await fetch(url, {
         headers: {
