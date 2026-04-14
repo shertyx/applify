@@ -123,9 +123,14 @@ async function scrapeJSearch(keywords, location) {
           "X-RapidAPI-Host": "jsearch.p.rapidapi.com",
         },
       });
-      const data = await res.json();
+      const rawText = await res.text();
+      let data;
+      try { data = JSON.parse(rawText); } catch {
+        console.error(`[JS] "${keyword}": réponse non-JSON:`, rawText.slice(0, 200));
+        continue;
+      }
       if (data.status !== "OK") {
-        console.error(`[JS] "${keyword}": status=${data.status}`, JSON.stringify(data).slice(0, 200));
+        console.error(`[JS] "${keyword}": status=${data.status} message=${data.message ?? JSON.stringify(data).slice(0, 150)}`);
         continue;
       }
       console.log(`[JS] "${keyword}": ${data.data?.length ?? 0} résultats`);
