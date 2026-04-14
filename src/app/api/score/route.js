@@ -1,6 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Redis } from "@upstash/redis";
 import { auth } from "@/auth";
+import { limiters, checkRateLimit } from "@/lib/ratelimit";
+import { sanitize, badRequest } from "@/lib/validate";
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL,
@@ -10,7 +12,15 @@ const redis = new Redis({
 export async function POST(request) {
   try {
     const session = await auth();
-    const { titre, entreprise } = await request.json();
+    if (!session?.user?.email) return Response.json({ error: "Non autorisé" }, { status: 401 });
+
+    const blocked = await checkRateLimit(limiters.ai, session.user.email);
+    if (blocked) return blocked;
+
+    const body = await request.json();
+    const titre = sanitize(body.titre, 200);
+    const entreprise = sanitize(body.entreprise, 200);
+    if (!titre) return badRequest("Titre manquant");
 
     let profil = null;
     if (session?.user?.email) {

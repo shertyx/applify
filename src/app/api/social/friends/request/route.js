@@ -1,5 +1,7 @@
 import { Redis } from "@upstash/redis";
 import { auth } from "@/auth";
+import { limiters, checkRateLimit } from "@/lib/ratelimit";
+import { isValidEmail, badRequest } from "@/lib/validate";
 
 const redis = new Redis({ url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN });
 
@@ -7,8 +9,11 @@ export async function POST(request) {
   const session = await auth();
   if (!session?.user?.email) return Response.json({ success: false }, { status: 401 });
 
+  const blocked = await checkRateLimit(limiters.social, session.user.email);
+  if (blocked) return blocked;
+
   const { toEmail } = await request.json();
-  if (!toEmail || toEmail === session.user.email) return Response.json({ success: false });
+  if (!isValidEmail(toEmail) || toEmail === session.user.email) return badRequest("Email invalide");
 
   const from = { email: session.user.email, name: session.user.name, image: session.user.image };
   const toUser = await redis.hget("users:registry", toEmail);

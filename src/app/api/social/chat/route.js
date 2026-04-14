@@ -1,5 +1,7 @@
 import { Redis } from "@upstash/redis";
 import { auth } from "@/auth";
+import { limiters, checkRateLimit } from "@/lib/ratelimit";
+import { sanitize, isValidEmail, badRequest } from "@/lib/validate";
 
 const redis = new Redis({ url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN });
 
@@ -23,8 +25,20 @@ export async function POST(request) {
   const session = await auth();
   if (!session?.user?.email) return Response.json({ success: false }, { status: 401 });
 
-  const { toEmail, text } = await request.json();
-  if (!toEmail || !text?.trim()) return Response.json({ success: false });
+  const blocked = await checkRateLimit(limiters.chat, session.user.email);
+  if (blocked) return blocked;
+
+  const body = await request.json();
+  const toEmail = body.toEmail;
+  const text = sanitize(body.text, 2000);
+
+  if (!isValidEmail(toEmail)) return badRequest("Email destinataire invalide");
+  if (!text) return badRequest("Message vide");
+
+  // Vérifier que les deux utilisateurs sont amis
+  const friends = await redis.get(`friends:${session.user.email}`);
+  const isFriend = (Array.isArray(friends) ? friends : []).some((f) => f.email === toEmail);
+  if (!isFriend) return Response.json({ success: false, error: "Non autorisé" }, { status: 403 });
 
   const key = chatKey(session.user.email, toEmail);
   const messages = await redis.get(key);
