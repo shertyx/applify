@@ -39,7 +39,7 @@ function LettreForm() {
   }
 
   return (
-    <main style={{ maxWidth: "800px", margin: "0 auto", padding: "32px 24px" }}>
+    <main style={{ maxWidth: "800px", margin: "0 auto", padding: "32px 16px" }}>
       <div className="animate-in" style={{ marginBottom: "28px" }}>
         <h1 style={{ fontSize: "20px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>
           Lettre de motivation
@@ -53,7 +53,7 @@ function LettreForm() {
         background: "var(--bg-secondary)", border: "1px solid var(--border)",
         borderRadius: "8px", padding: "20px", marginBottom: "16px",
       }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+        <div className="mobile-grid-1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
           <div>
             <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
               Entreprise

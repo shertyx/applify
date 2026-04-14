@@ -32,7 +32,7 @@ export default function Dashboard() {
   }
 
   return (
-    <main style={{ maxWidth: "900px", margin: "0 auto", padding: "32px 24px" }}>
+    <main style={{ maxWidth: "900px", margin: "0 auto", padding: "32px 16px" }}>
       <div className="animate-in" style={{ marginBottom: "32px" }}>
         <h1 style={{ fontSize: "20px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>
           Dashboard
@@ -42,7 +42,7 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "24px" }}>
+      <div className="mobile-grid-2" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "24px" }}>
         {[
           { label: "Candidatures", value: stats.total, color: "#58a6ff" },
           { label: "Entretiens", value: stats.entretiens, color: "#3fb950" },
@@ -100,7 +100,7 @@ export default function Dashboard() {
         </div>
 
         {showForm && (
-          <div className="animate-in" style={{
+          <div className="animate-in mobile-grid-1" style={{
             padding: "16px 20px",
             borderBottom: "1px solid var(--border)",
             background: "var(--bg-primary)",
@@ -157,7 +157,7 @@ export default function Dashboard() {
         ) : (
           <div>
             {candidatures.map((c, i) => (
-              <div key={c.id} className="animate-in" style={{
+              <div key={c.id} className="animate-in mobile-stack" style={{
                 animationDelay: `${i * 40}ms`,
                 display: "flex",
                 alignItems: "center",
@@ -177,7 +177,7 @@ export default function Dashboard() {
                     {c.entreprise} · {c.source} · {c.datePostulation}
                   </p>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div className="mobile-wrap" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <span style={{
                     fontSize: "11px", padding: "3px 8px", borderRadius: "20px",
                     color: STATUTS[c.statut]?.color,

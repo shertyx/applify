@@ -55,3 +55,17 @@ input:focus, textarea:focus, select:focus {
 
 .animate-in { animation: fadeInUp 0.25s ease forwards; }
 .animate-pulse { animation: pulse 1.5s ease infinite; }
+
+/* Responsive */
+@media (max-width: 640px) {
+  .mobile-hide { display: none !important; }
+  .mobile-stack { flex-direction: column !important; align-items: flex-start !important; }
+  .mobile-wrap { flex-wrap: wrap !important; }
+  .mobile-full { width: 100% !important; }
+  .mobile-grid-1 { grid-template-columns: 1fr !important; }
+  .mobile-grid-2 { grid-template-columns: 1fr 1fr !important; }
+  .mobile-p { padding: 16px !important; }
+  .mobile-p-sm { padding: 12px !important; }
+  .mobile-gap-sm { gap: 6px !important; }
+  .mobile-text-sm { font-size: 12px !important; }
+}

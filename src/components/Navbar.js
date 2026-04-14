@@ -56,7 +56,7 @@ export default function Navbar() {
     <nav style={{
       background: "var(--bg-secondary)",
       borderBottom: "1px solid var(--border)",
-      padding: "0 24px",
+      padding: "0 16px",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
@@ -70,12 +70,13 @@ export default function Navbar() {
           width: "24px", height: "24px", borderRadius: "6px",
           background: "linear-gradient(135deg, #58a6ff, #bc8cff)",
           display: "flex", alignItems: "center", justifyContent: "center",
+          flexShrink: 0,
         }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
           </svg>
         </div>
-        <span style={{
+        <span className="mobile-hide" style={{
           fontSize: "13px", fontWeight: 600,
           color: "var(--text-primary)", letterSpacing: "0.02em",
         }}>
@@ -91,7 +92,7 @@ export default function Navbar() {
               key={link.href}
               href={link.href}
               style={{
-                fontSize: "13px", padding: "6px 12px",
+                fontSize: "13px", padding: "6px 10px",
                 borderRadius: "6px", textDecoration: "none",
                 color: active ? "var(--text-primary)" : "var(--text-secondary)",
                 background: active ? "var(--bg-tertiary)" : "transparent",
@@ -103,7 +104,7 @@ export default function Navbar() {
               <span style={{ color: active ? "var(--accent)" : "currentColor" }}>
                 {link.icon}
               </span>
-              {link.label}
+              <span className="mobile-hide">{link.label}</span>
               {link.href === "/dashboard" && entretiens > 0 && (
                 <span style={{
                   fontSize: "10px", fontWeight: 600,
@@ -119,8 +120,8 @@ export default function Navbar() {
         })}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <div style={{
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div className="mobile-hide" style={{
           fontSize: "11px", color: "var(--text-muted)",
           background: "var(--bg-tertiary)", border: "1px solid var(--border)",
           borderRadius: "20px", padding: "3px 10px",

@@ -107,15 +107,15 @@ export default function Offres() {
   ];
 
   return (
-    <main style={{ maxWidth: "900px", margin: "0 auto", padding: "32px 24px" }}>
-      <div className="animate-in" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "24px" }}>
+    <main style={{ maxWidth: "900px", margin: "0 auto", padding: "32px 16px" }}>
+      <div className="animate-in mobile-stack" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "24px", gap: "12px" }}>
         <div>
           <h1 style={{ fontSize: "20px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>Offres</h1>
           <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
             {offres.length} offres · Mise à jour : {lastUpdate ?? "jamais"}
           </p>
         </div>
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div className="mobile-wrap" style={{ display: "flex", gap: "8px" }}>
           <button
             onClick={() => analyserOffres(offres)}
             style={{
@@ -214,12 +214,12 @@ export default function Offres() {
             const sc = score && score.score != null ? scoreColor(score.score) : null;
 
             return (
-              <div key={offre.id} className="animate-in" style={{
+              <div key={offre.id} className="animate-in mobile-stack" style={{
                 animationDelay: `${Math.min(i * 30, 300)}ms`,
                 background: "var(--bg-secondary)",
                 border: "1px solid var(--border)",
                 borderRadius: "8px", padding: "14px 16px",
-                display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px",
+                display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px",
                 transition: "border-color 0.15s",
               }}
               onMouseEnter={(e) => e.currentTarget.style.borderColor = "#444c56"}
@@ -264,7 +264,7 @@ export default function Offres() {
                   )}
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
+                <div className="mobile-wrap mobile-full" style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
                   {filtre === "corbeille" ? (
                     <button onClick={() => restaurerDansOffres(offre.id)} style={btnStyle("#238636", "#2ea043", "#fff")}>
                       Restaurer

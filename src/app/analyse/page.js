@@ -30,7 +30,7 @@ export default function Analyse() {
   }
 
   return (
-    <main style={{ maxWidth: "800px", margin: "0 auto", padding: "32px 24px" }}>
+    <main style={{ maxWidth: "800px", margin: "0 auto", padding: "32px 16px" }}>
       <div className="animate-in" style={{ marginBottom: "28px" }}>
         <h1 style={{ fontSize: "20px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>
           Analyser une offre
