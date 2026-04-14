@@ -101,14 +101,18 @@ async function scrapeFranceTravail(token, keywords, location) {
 }
 
 async function scrapeGoogleJobs(keywords, location) {
+  if (!process.env.SERP_API_KEY) { console.log("[GJ] Clé SERP_API_KEY manquante, skip."); return []; }
   const offres = [];
   for (const keyword of keywords.slice(0, 3)) {
     try {
       const res = await fetch(
         `https://serpapi.com/search.json?engine=google_jobs&q=${encodeURIComponent(keyword + " " + location)}&hl=fr&gl=fr&api_key=${process.env.SERP_API_KEY}`
       );
-      const data = await res.json();
-      console.log(`[GJ] "${keyword}": ${data.jobs_results?.length ?? 0} résultats, error=${data.error ?? "none"}`);
+      const text = await res.text();
+      console.log(`[GJ] "${keyword}": http=${res.status} body=${text.slice(0, 120)}`);
+      if (!text) continue;
+      let data;
+      try { data = JSON.parse(text); } catch { console.error(`[GJ] JSON invalide pour "${keyword}"`); continue; }
       for (const o of data.jobs_results || []) {
         offres.push({
           id: `gj-${o.job_id ?? Math.random()}`,
