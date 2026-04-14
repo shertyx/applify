@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { auth } from "@/auth";
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL,
@@ -6,9 +7,14 @@ const redis = new Redis({
 });
 
 export async function GET() {
+  const session = await auth();
+  if (!session?.user?.email) {
+    return Response.json({ candidatures: [], corbeille: [] }, { status: 401 });
+  }
+  const uid = session.user.email;
   try {
-    const candidatures = await redis.get("candidatures");
-    const corbeille = await redis.get("corbeille");
+    const candidatures = await redis.get(`candidatures:${uid}`);
+    const corbeille = await redis.get(`corbeille:${uid}`);
     return Response.json({
       candidatures: Array.isArray(candidatures) ? candidatures : [],
       corbeille: Array.isArray(corbeille) ? corbeille : [],
@@ -19,10 +25,15 @@ export async function GET() {
 }
 
 export async function POST(request) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    return Response.json({ success: false }, { status: 401 });
+  }
+  const uid = session.user.email;
   try {
     const { candidatures, corbeille } = await request.json();
-    await redis.set("candidatures", candidatures);
-    await redis.set("corbeille", corbeille);
+    await redis.set(`candidatures:${uid}`, candidatures);
+    await redis.set(`corbeille:${uid}`, corbeille);
     return Response.json({ success: true });
   } catch (error) {
     return Response.json({ success: false, error: error.message }, { status: 500 });

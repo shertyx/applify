@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useApp } from "@/context/AppContext";
+import { useSession, signOut } from "next-auth/react";
+import Image from "next/image";
 
 const links = [
   {
@@ -50,6 +52,7 @@ const links = [
 export default function Navbar() {
   const pathname = usePathname();
   const { candidatures } = useApp();
+  const { data: session } = useSession();
   const entretiens = candidatures.filter((c) => c.statut === "interview").length;
 
   return (
@@ -128,15 +131,35 @@ export default function Navbar() {
         }}>
           {candidatures.length} candidature{candidatures.length !== 1 ? "s" : ""}
         </div>
-        <div style={{
-          width: "30px", height: "30px", borderRadius: "50%",
-          background: "linear-gradient(135deg, #58a6ff, #bc8cff)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: "12px", fontWeight: 600, color: "#fff",
-          cursor: "pointer", flexShrink: 0,
-        }}>
-          FC
-        </div>
+        {session?.user && (
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            title={`Déconnexion (${session.user.name})`}
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              padding: 0, flexShrink: 0, borderRadius: "50%",
+            }}
+          >
+            {session.user.image ? (
+              <Image
+                src={session.user.image}
+                alt={session.user.name ?? "Avatar"}
+                width={30}
+                height={30}
+                style={{ borderRadius: "50%", display: "block" }}
+              />
+            ) : (
+              <div style={{
+                width: "30px", height: "30px", borderRadius: "50%",
+                background: "linear-gradient(135deg, #58a6ff, #bc8cff)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "12px", fontWeight: 600, color: "#fff",
+              }}>
+                {session.user.name?.[0]?.toUpperCase() ?? "U"}
+              </div>
+            )}
+          </button>
+        )}
       </div>
     </nav>
   );
