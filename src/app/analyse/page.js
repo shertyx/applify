@@ -6,17 +6,43 @@ import { useSearchParams } from "next/navigation";
 export default function Analyse() {
   const searchParams = useSearchParams();
   const [offre, setOffre] = useState("");
+  const [fetchStatus, setFetchStatus] = useState(null); // null | "loading" | "ok" | "manual"
+  const [source, setSource] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [resultat, setResultat] = useState(null);
+  const [erreur, setErreur] = useState(null);
 
   useEffect(() => {
     const titre = searchParams.get("titre");
     const entreprise = searchParams.get("entreprise");
-    if (titre) {
+    const id = searchParams.get("id");
+    const src = searchParams.get("source");
+    setSource(src);
+
+    if (!titre) return;
+
+    if (id && src === "France Travail") {
+      setFetchStatus("loading");
+      fetch(`/api/offres/description?id=${encodeURIComponent(id)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.description) {
+            setOffre(data.description);
+            setFetchStatus("ok");
+          } else {
+            setOffre(`Poste : ${titre}${entreprise ? `\nEntreprise : ${entreprise}` : ""}\n\n`);
+            setFetchStatus("manual");
+          }
+        })
+        .catch(() => {
+          setOffre(`Poste : ${titre}${entreprise ? `\nEntreprise : ${entreprise}` : ""}\n\n`);
+          setFetchStatus("manual");
+        });
+    } else {
       setOffre(`Poste : ${titre}${entreprise ? `\nEntreprise : ${entreprise}` : ""}\n\n`);
+      setFetchStatus(src ? "manual" : null);
     }
   }, []);
-  const [loading, setLoading] = useState(false);
-  const [resultat, setResultat] = useState(null);
-  const [erreur, setErreur] = useState(null);
 
   async function analyser() {
     if (!offre.trim()) return;
@@ -46,7 +72,7 @@ export default function Analyse() {
           Analyser une offre
         </h1>
         <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-          Colle une fiche de poste et l'IA analyse ta compatibilité
+          L'IA compare la fiche de poste avec ton profil et ton CV
         </p>
       </div>
 
@@ -54,25 +80,46 @@ export default function Analyse() {
         background: "var(--bg-secondary)", border: "1px solid var(--border)",
         borderRadius: "8px", padding: "20px", marginBottom: "16px",
       }}>
-        <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-          Fiche de poste
-        </label>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+          <label style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            Fiche de poste
+          </label>
+          {fetchStatus === "loading" && (
+            <span className="animate-pulse" style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+              Récupération depuis France Travail...
+            </span>
+          )}
+          {fetchStatus === "ok" && (
+            <span style={{ fontSize: "11px", color: "#3fb950", display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#3fb950", display: "inline-block" }} />
+              Description récupérée automatiquement
+            </span>
+          )}
+          {fetchStatus === "manual" && (
+            <span style={{ fontSize: "11px", color: "#d29922", display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#d29922", display: "inline-block" }} />
+              {source ? `Description non disponible pour ${source}` : "Source inconnue"} — colle-la ci-dessous
+            </span>
+          )}
+        </div>
+
         <textarea
           value={offre}
           onChange={(e) => setOffre(e.target.value)}
           placeholder="Colle ici la description complète de l'offre d'emploi..."
-          style={{ width: "100%", minHeight: "160px", resize: "vertical" }}
+          disabled={fetchStatus === "loading"}
+          style={{ width: "100%", minHeight: "160px", resize: "vertical", opacity: fetchStatus === "loading" ? 0.5 : 1 }}
         />
         <button
           onClick={analyser}
-          disabled={loading || !offre.trim()}
+          disabled={loading || !offre.trim() || fetchStatus === "loading"}
           style={{
             marginTop: "12px", fontSize: "13px", padding: "7px 18px",
-            background: loading || !offre.trim() ? "var(--bg-tertiary)" : "#238636",
-            border: "1px solid " + (loading || !offre.trim() ? "var(--border)" : "#2ea043"),
+            background: loading || !offre.trim() || fetchStatus === "loading" ? "var(--bg-tertiary)" : "#238636",
+            border: "1px solid " + (loading || !offre.trim() || fetchStatus === "loading" ? "var(--border)" : "#2ea043"),
             borderRadius: "6px",
-            color: loading || !offre.trim() ? "var(--text-muted)" : "#fff",
-            cursor: loading || !offre.trim() ? "not-allowed" : "pointer",
+            color: loading || !offre.trim() || fetchStatus === "loading" ? "var(--text-muted)" : "#fff",
+            cursor: loading || !offre.trim() || fetchStatus === "loading" ? "not-allowed" : "pointer",
             transition: "all 0.15s",
           }}
         >
