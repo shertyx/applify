@@ -18,9 +18,12 @@ export default function Analyse() {
     const entreprise = searchParams.get("entreprise");
     const id = searchParams.get("id");
     const src = searchParams.get("source");
-    const lienParam = searchParams.get("lien");
     setSource(src);
-    if (lienParam) setLien(lienParam);
+    try {
+      const stored = sessionStorage.getItem("analyse_lien");
+      if (stored && stored !== "#") setLien(stored);
+      sessionStorage.removeItem("analyse_lien");
+    } catch {}
 
     if (!titre) return;
 
