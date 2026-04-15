@@ -24,6 +24,7 @@ export default function Offres() {
   const [scraping, setScraping] = useState(false);
   const [scrapeMsg, setScrapeMsg] = useState(null);
   const [quota, setQuota] = useState(null);
+  const [resetMsg, setResetMsg] = useState(null);
   const [filtre, setFiltre] = useState("toutes");
   const [sourceFiltre, setSourceFiltre] = useState("toutes");
   const [recherche, setRecherche] = useState("");
@@ -46,6 +47,22 @@ export default function Offres() {
     const data = await res.json();
     setOffres(data.offres || []);
     setLastUpdate(data.last_update);
+  }
+
+  async function resetGeminiQuota() {
+    setResetMsg("...");
+    try {
+      const res = await fetch("/api/admin/reset-quota", { method: "POST" });
+      if (res.ok) {
+        setResetMsg("Compteur remis à zéro !");
+        await fetchQuota();
+      } else {
+        setResetMsg("Erreur " + res.status);
+      }
+    } catch {
+      setResetMsg("Erreur réseau");
+    }
+    setTimeout(() => setResetMsg(null), 3000);
   }
 
   async function lancerScraper() {
@@ -145,10 +162,7 @@ export default function Offres() {
                 <span style={{ color: displayColor }}>{valueText}</span>
                 {isAdmin && label === "Gemini" && (
                   <button
-                    onClick={async () => {
-                      await fetch("/api/admin/reset-quota", { method: "POST" });
-                      fetchQuota();
-                    }}
+                    onClick={resetGeminiQuota}
                     style={{
                       fontSize: "10px", padding: "1px 6px", marginLeft: "2px",
                       background: "transparent", border: "1px solid var(--border)",
@@ -156,7 +170,7 @@ export default function Offres() {
                     }}
                     title="Réinitialiser le compteur Gemini"
                   >
-                    reset
+                    {resetMsg ?? "reset"}
                   </button>
                 )}
               </div>
