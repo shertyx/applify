@@ -5,7 +5,7 @@ const redis = new Redis({ url: process.env.KV_REST_API_URL, token: process.env.K
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.email) return Response.json({}, { status: 401 });
+  if (session?.user?.email !== "fcaron59126@gmail.com") return Response.json({}, { status: 403 });
 
   const quota = {};
 

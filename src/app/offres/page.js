@@ -16,8 +16,6 @@ export default function Offres() {
   const { candidatures, corbeille, postuler, mettreEnAttente, restaurerDansOffres, viderCorbeille, mettreEnCorbeille } = useApp();
   const [offres, setOffres] = useState([]);
   const [lastUpdate, setLastUpdate] = useState(null);
-  const [scores, setScores] = useState({});
-  const [loadingScores, setLoadingScores] = useState({});
   const [scraping, setScraping] = useState(false);
   const [scrapeMsg, setScrapeMsg] = useState(null);
   const [quota, setQuota] = useState(null);
@@ -45,31 +43,6 @@ export default function Offres() {
     setLastUpdate(data.last_update);
   }
 
-  async function analyserOffres(liste) {
-    for (const offre of liste.slice(0, 10)) {
-      setLoadingScores((prev) => ({ ...prev, [offre.id]: true }));
-      try {
-        const res = await fetch("/api/score", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ titre: offre.titre, entreprise: offre.entreprise }),
-        });
-        const data = await res.json();
-        if (data.raison === "quota_epuise") {
-          setScores((prev) => ({ ...prev, [offre.id]: data }));
-          setLoadingScores((prev) => ({ ...prev, [offre.id]: false }));
-          break;
-        }
-        setScores((prev) => ({ ...prev, [offre.id]: data }));
-      } catch {
-        setScores((prev) => ({ ...prev, [offre.id]: { score: 0, raison: "Erreur" } }));
-      } finally {
-        setLoadingScores((prev) => ({ ...prev, [offre.id]: false }));
-      }
-      await new Promise((r) => setTimeout(r, 5000));
-    }
-  }
-
   async function lancerScraper() {
     setScraping(true);
     setScrapeMsg(null);
@@ -89,12 +62,6 @@ export default function Offres() {
     }
   }
 
-  function scoreColor(score) {
-    if (score >= 75) return { color: "#3fb950", bg: "rgba(63,185,80,0.1)" };
-    if (score >= 50) return { color: "#d29922", bg: "rgba(210,153,34,0.1)" };
-    return { color: "#f85149", bg: "rgba(248,81,73,0.1)" };
-  }
-
   const sourcesDisponibles = [...new Set(offres.map((o) => o.source).filter(Boolean))];
 
   const offresFiltrees = (filtre === "corbeille"
@@ -103,7 +70,6 @@ export default function Offres() {
         if (corbeilleIds.has(o.id)) return false;
         if (filtre === "masquees") return candidatureIds.has(o.id);
         if (filtre === "toutes") return !candidatureIds.has(o.id);
-        if (filtre === "top") return !candidatureIds.has(o.id) && (scores[o.id]?.score ?? 0) >= 75;
         return true;
       })
   ).filter((o) =>
@@ -115,7 +81,6 @@ export default function Offres() {
 
   const filtres = [
     { key: "toutes", label: "Toutes" },
-    { key: "top", label: "Top matchs" },
     { key: "masquees", label: "Suivies" },
     { key: "corbeille", label: `Corbeille (${(corbeille || []).length})` },
   ];
@@ -130,19 +95,6 @@ export default function Offres() {
           </p>
         </div>
         <div className="mobile-wrap" style={{ display: "flex", gap: "8px" }}>
-          <button
-            onClick={() => analyserOffres(offres)}
-            style={{
-              fontSize: "13px", padding: "6px 14px",
-              background: "transparent", border: "1px solid var(--border)",
-              borderRadius: "6px", color: "var(--text-secondary)", cursor: "pointer",
-              transition: "all 0.15s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
-          >
-            Analyser les matchs
-          </button>
           <button
             onClick={lancerScraper}
             disabled={scraping}
@@ -292,11 +244,8 @@ export default function Offres() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {offresFiltrees.map((offre, i) => {
-            const score = scores[offre.id];
-            const loading = loadingScores[offre.id];
             const dejaPostule = candidatureIds.has(offre.id);
             const src = SOURCE_COLORS[offre.source] ?? { color: "#8b949e", bg: "rgba(139,148,158,0.1)" };
-            const sc = score && score.score != null ? scoreColor(score.score) : null;
 
             return (
               <div key={offre.id} className="animate-in mobile-stack" style={{
@@ -321,20 +270,6 @@ export default function Offres() {
                     {offre.contrat && offre.contrat !== "N/A" && (
                       <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>{offre.contrat}</span>
                     )}
-                    {loading ? (
-                      <span className="animate-pulse" style={{ fontSize: "11px", color: "var(--text-muted)" }}>Analyse...</span>
-                    ) : score?.raison === "quota_epuise" ? (
-                      <span style={{ fontSize: "11px", color: "#d29922", background: "rgba(210,153,34,0.1)", padding: "2px 8px", borderRadius: "20px" }}>
-                        Quota épuisé
-                      </span>
-                    ) : sc ? (
-                      <span style={{
-                        fontSize: "11px", padding: "2px 8px", borderRadius: "20px",
-                        color: sc.color, background: sc.bg, fontWeight: 500,
-                      }}>
-                        {score.score}% match
-                      </span>
-                    ) : null}
                   </div>
                   <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--text-primary)", marginBottom: "3px" }}>
                     {offre.titre}
@@ -342,11 +277,6 @@ export default function Offres() {
                   <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>
                     {offre.entreprise} · {offre.lieu}
                   </p>
-                  {score?.raison && !["quota_epuise", "Erreur"].includes(score.raison) && (
-                    <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px", fontStyle: "italic" }}>
-                      {score.raison}
-                    </p>
-                  )}
                 </div>
 
                 <div className="mobile-wrap mobile-full" style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
@@ -379,6 +309,9 @@ export default function Offres() {
                       </button>
                       <button onClick={() => router.push(`/lettre?titre=${encodeURIComponent(offre.titre)}&entreprise=${encodeURIComponent(offre.entreprise)}`)} style={btnStyle("transparent", "var(--border)", "var(--accent)")}>
                         Lettre
+                      </button>
+                      <button onClick={() => router.push(`/analyse?titre=${encodeURIComponent(offre.titre)}&entreprise=${encodeURIComponent(offre.entreprise)}`)} style={btnStyle("transparent", "var(--border)", "var(--text-secondary)")}>
+                        Analyser
                       </button>
                       <button onClick={() => mettreEnCorbeille(offre)} style={btnStyle("transparent", "rgba(248,81,73,0.3)", "var(--danger)")}>
                         Corbeille

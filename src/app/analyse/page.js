@@ -1,9 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function Analyse() {
+  const searchParams = useSearchParams();
   const [offre, setOffre] = useState("");
+
+  useEffect(() => {
+    const titre = searchParams.get("titre");
+    const entreprise = searchParams.get("entreprise");
+    if (titre) {
+      setOffre(`Poste : ${titre}${entreprise ? `\nEntreprise : ${entreprise}` : ""}\n\n`);
+    }
+  }, []);
   const [loading, setLoading] = useState(false);
   const [resultat, setResultat] = useState(null);
   const [erreur, setErreur] = useState(null);
