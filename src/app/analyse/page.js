@@ -18,7 +18,6 @@ export default function Analyse() {
     const titre = searchParams.get("titre");
     const entreprise = searchParams.get("entreprise");
     const id = searchParams.get("id");
-    const id = searchParams.get("id");
     const src = searchParams.get("source");
     setSource(src);
     if (id) setOffreId(id);
