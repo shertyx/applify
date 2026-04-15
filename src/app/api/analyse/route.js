@@ -38,7 +38,7 @@ export async function POST(request) {
         ? `Candidat : ${session.user.name} (CV non renseigné)`
         : "Profil non renseigné.";
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `Tu es un expert RH. Analyse la compatibilité entre ce profil et cette offre.
 
@@ -62,8 +62,8 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks :
   } catch (error) {
     const msg = error?.message ?? "";
     if (msg.includes("429") || msg.includes("quota") || msg.includes("exhausted")) {
-      return Response.json({ error: `Quota Gemini épuisé — réessaie demain ou vérifie Google AI Studio.\n(${msg.slice(0, 300)})` }, { status: 429 });
+      return Response.json({ error: "Quota Gemini épuisé, réessaie demain." }, { status: 429 });
     }
-    return Response.json({ error: `Erreur lors de l'analyse : ${msg.slice(0, 300)}` }, { status: 500 });
+    return Response.json({ error: "Erreur lors de l'analyse." }, { status: 500 });
   }
 }
