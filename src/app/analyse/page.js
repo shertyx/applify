@@ -132,24 +132,26 @@ export default function Analyse() {
         </div>
 
         {fetchStatus === "ok" && !editMode ? (
-          <div style={{
-            background: "var(--bg-primary)", border: "1px solid var(--border)",
-            borderRadius: "6px", padding: "14px 16px",
-            fontSize: "13px", color: "var(--text-secondary)", lineHeight: "1.7",
-            whiteSpace: "pre-wrap", maxHeight: "320px", overflowY: "auto",
-          }}>
-            {offre}
+          <>
+            <div style={{
+              background: "var(--bg-primary)", border: "1px solid var(--border)",
+              borderRadius: "6px", padding: "14px 16px",
+              fontSize: "13px", color: "var(--text-secondary)", lineHeight: "1.7",
+              whiteSpace: "pre-wrap", maxHeight: "320px", overflowY: "auto",
+            }}>
+              {offre}
+            </div>
             <button
               onClick={() => setEditMode(true)}
               style={{
-                display: "block", marginTop: "10px", fontSize: "11px", padding: "3px 10px",
+                marginTop: "8px", fontSize: "11px", padding: "3px 10px",
                 background: "transparent", border: "1px solid var(--border)",
                 borderRadius: "6px", color: "var(--text-muted)", cursor: "pointer",
               }}
             >
               Modifier
             </button>
-          </div>
+          </>
         ) : (
           <textarea
             value={offre}
