@@ -18,6 +18,19 @@ function LettreForm() {
   useEffect(() => {
     const id = searchParams.get("id");
     const source = searchParams.get("source");
+
+    // 1. Description stockée (JSearch, etc.)
+    try {
+      const stored = sessionStorage.getItem("lettre_description");
+      sessionStorage.removeItem("lettre_description");
+      if (stored) {
+        setOffre(stored);
+        setFetchStatus("ok");
+        return;
+      }
+    } catch {}
+
+    // 2. France Travail → fetch API
     if (id && source === "France Travail") {
       setFetchStatus("loading");
       fetch(`/api/offres/description?id=${encodeURIComponent(id)}`)

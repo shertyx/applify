@@ -263,6 +263,7 @@ async function scrapeJSearch(keywords, location) {
         lieu: [o.job_city, o.job_country].filter(Boolean).join(", ") || location,
         contrat: o.job_employment_type ?? "N/A",
         source: "JSearch",
+        description: o.job_description ?? "",
         keyword,
         lien: o.job_apply_link ?? o.job_google_link ?? `https://www.google.com/search?q=${encodeURIComponent((o.job_title ?? keyword) + " " + (o.employer_name ?? "") + " emploi")}`,
         date: o.job_posted_at_datetime_utc

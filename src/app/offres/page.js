@@ -43,6 +43,14 @@ export default function Offres() {
     mettreEnCorbeille(offre);
   }
 
+  function ouvrirLettre(offre) {
+    try {
+      if (offre.description) sessionStorage.setItem("lettre_description", offre.description);
+      else sessionStorage.removeItem("lettre_description");
+    } catch {}
+    router.push(`/lettre?titre=${encodeURIComponent(offre.titre)}&entreprise=${encodeURIComponent(offre.entreprise)}&id=${encodeURIComponent(offre.id)}&source=${encodeURIComponent(offre.source ?? "")}`);
+  }
+
   function ouvrirAnalyse(offre) {
     try { sessionStorage.setItem("analyse_lien", offre.lien ?? ""); } catch {}
     if (analyses[offre.id]) {
@@ -363,7 +371,7 @@ export default function Offres() {
                       }}>
                         Suivie ✓
                       </span>
-                      <button onClick={() => router.push(`/lettre?titre=${encodeURIComponent(offre.titre)}&entreprise=${encodeURIComponent(offre.entreprise)}&id=${encodeURIComponent(offre.id)}&source=${encodeURIComponent(offre.source ?? "")}`)} style={btnStyle("transparent", "var(--border)", "var(--text-secondary)")}>
+                      <button onClick={() => ouvrirLettre(offre)} style={btnStyle("transparent", "var(--border)", "var(--text-secondary)")}>
                         Lettre
                       </button>
                       <button onClick={() => ouvrirAnalyse(offre)} style={btnStyle("transparent", "var(--border)", "var(--text-secondary)")}>
@@ -381,7 +389,7 @@ export default function Offres() {
                       <button onClick={() => mettreEnAttente(offre)} style={btnStyle("transparent", "var(--border)", "var(--text-secondary)")}>
                         En attente
                       </button>
-                      <button onClick={() => router.push(`/lettre?titre=${encodeURIComponent(offre.titre)}&entreprise=${encodeURIComponent(offre.entreprise)}&id=${encodeURIComponent(offre.id)}&source=${encodeURIComponent(offre.source ?? "")}`)} style={btnStyle("transparent", "var(--border)", "var(--accent)")}>
+                      <button onClick={() => ouvrirLettre(offre)} style={btnStyle("transparent", "var(--border)", "var(--accent)")}>
                         Lettre
                       </button>
                       <button onClick={() => ouvrirAnalyse(offre)} style={btnStyle("transparent", "var(--border)", "var(--text-secondary)")}>
