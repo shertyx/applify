@@ -1,13 +1,9 @@
 import Groq from "groq-sdk";
-import { Redis } from "@upstash/redis";
 import { auth } from "@/auth";
 import { limiters, guestLimiters, checkRateLimit, getClientIp } from "@/lib/ratelimit";
 import { sanitize, badRequest } from "@/lib/validate";
-
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL,
-  token: process.env.KV_REST_API_TOKEN,
-});
+import { getProfil } from "@/services/profil";
+import { saveAnalyse } from "@/services/analyses";
 
 export async function POST(request) {
   try {
@@ -28,7 +24,7 @@ export async function POST(request) {
 
     let profil = null;
     if (session?.user?.email) {
-      profil = await redis.get(`profil:${session.user.email}`);
+      profil = await getProfil(session.user.email);
     }
 
     const profilTexte = profil?.cv
@@ -60,10 +56,7 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks :
     const data = JSON.parse(clean);
 
     if (session?.user?.email && offreId) {
-      const key = `analyses:${session.user.email}`;
-      const existing = (await redis.get(key)) ?? {};
-      existing[offreId] = data;
-      await redis.set(key, existing);
+      await saveAnalyse(session.user.email, offreId, data);
     }
 
     return Response.json(data);

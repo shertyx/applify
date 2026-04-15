@@ -1,8 +1,6 @@
-import { Redis } from "@upstash/redis";
 import { auth } from "@/auth";
 import { limiters, checkRateLimit } from "@/lib/ratelimit";
-
-const redis = new Redis({ url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN });
+import { searchUsers } from "@/services/social";
 
 export async function GET(request) {
   const session = await auth();
@@ -15,16 +13,6 @@ export async function GET(request) {
   const q = searchParams.get("q")?.toLowerCase().trim();
   if (!q || q.length < 2) return Response.json([]);
 
-  const all = await redis.hgetall("users:registry");
-  if (!all) return Response.json([]);
-
-  const results = Object.values(all)
-    .map((v) => (typeof v === "string" ? JSON.parse(v) : v))
-    .filter((u) =>
-      u.email !== session.user.email &&
-      (u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q))
-    )
-    .slice(0, 10);
-
+  const results = await searchUsers(q, session.user.email);
   return Response.json(results);
 }

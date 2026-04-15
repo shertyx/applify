@@ -1,10 +1,5 @@
 import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
-
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL,
-  token: process.env.KV_REST_API_TOKEN,
-});
+import redis from "@/lib/redis";
 
 // Différentes fenêtres selon la sensibilité
 export const limiters = {

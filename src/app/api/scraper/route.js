@@ -1,12 +1,14 @@
-import { Redis } from "@upstash/redis";
 import { auth } from "@/auth";
 import { limiters, guestLimiters, checkRateLimit, getClientIp } from "@/lib/ratelimit";
+import redis from "@/lib/redis";
 import Groq from "groq-sdk";
-
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL,
-  token: process.env.KV_REST_API_TOKEN,
-});
+import { getProfil } from "@/services/profil";
+import { saveOffres } from "@/services/offres";
+import {
+  incrementFranceTravailQuota,
+  saveFranceTravailCount,
+  saveJsearchQuota,
+} from "@/services/quota";
 
 const DEFAULT_KEYWORDS = ["data analyst", "data engineer", "machine learning engineer", "AI engineer"];
 const DEFAULT_LOCATION = "Paris, France";
@@ -174,9 +176,7 @@ async function scrapeFranceTravail(token, keywords, location) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       // Compteur journalier FT (TTL 24h pour reset automatique)
-      const ftKey = "quota:francetravail:daily";
-      await redis.incr(ftKey);
-      await redis.expire(ftKey, 86400);
+      await incrementFranceTravailQuota();
       const text = await res.text();
       if (!text) { console.log(`[FT] "${keyword}": réponse vide (status ${res.status})`); continue; }
       const data = JSON.parse(text);
@@ -256,7 +256,7 @@ async function scrapeJSearch(keywords, location) {
       const remaining = res.headers.get("x-ratelimit-requests-remaining");
       const limit = res.headers.get("x-ratelimit-requests-limit");
       if (remaining !== null) {
-        await redis.set("quota:jsearch", { remaining: parseInt(remaining), limit: parseInt(limit ?? 0) }, { ex: 86400 });
+        await saveJsearchQuota(parseInt(remaining), parseInt(limit ?? 0));
       }
 
       const rawText = await res.text();
@@ -304,7 +304,7 @@ export async function POST(request) {
   }
 
   try {
-    const profil = session?.user?.email ? await redis.get(`profil:${session.user.email}`) : null;
+    const profil = session?.user?.email ? await getProfil(session.user.email) : null;
 
     const completion =
       (profil?.nom?.trim() ? 15 : 0) +
@@ -330,7 +330,7 @@ export async function POST(request) {
     ]);
 
     console.log(`[SCRAPER] FT=${ftOffres.length} GJ=${gjOffres.length} JS=${jsOffres.length}`);
-    await redis.set("quota:francetravail", { count: ftOffres.length }, { ex: 60 * 60 * 24 });
+    await saveFranceTravailCount(ftOffres.length);
     const all = [...ftOffres, ...gjOffres, ...jsOffres];
     const seen = new Set();
     const unique = all.filter((o) => {
@@ -345,7 +345,7 @@ export async function POST(request) {
       offres: unique,
     };
 
-    await redis.set(`offres:${userKey}`, JSON.stringify(payload));
+    await saveOffres(userKey, payload);
 
     return Response.json({ success: true, total: unique.length });
   } catch (error) {

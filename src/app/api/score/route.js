@@ -1,13 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { Redis } from "@upstash/redis";
 import { auth } from "@/auth";
 import { limiters, guestLimiters, checkRateLimit, getClientIp } from "@/lib/ratelimit";
 import { sanitize, badRequest } from "@/lib/validate";
-
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL,
-  token: process.env.KV_REST_API_TOKEN,
-});
+import { getProfil } from "@/services/profil";
+import { incrementGeminiQuota } from "@/services/quota";
 
 export async function POST(request) {
   try {
@@ -28,7 +24,7 @@ export async function POST(request) {
 
     let profil = null;
     if (session?.user?.email) {
-      profil = await redis.get(`profil:${session.user.email}`);
+      profil = await getProfil(session.user.email);
     }
 
     const profilTexte = profil?.cv
@@ -47,8 +43,7 @@ Réponds UNIQUEMENT en JSON valide sans markdown :
 {"score": 75, "raison": "Une phrase courte expliquant le score."}`;
 
     const result = await model.generateContent(prompt);
-    const gKey = "quota:gemini:daily";
-    await redis.incr(gKey); await redis.expire(gKey, 86400);
+    await incrementGeminiQuota();
     const text = result.response.text().replace(/```json|```/g, "").trim();
     const data = JSON.parse(text);
     return Response.json(data);

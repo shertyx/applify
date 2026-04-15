@@ -1,12 +1,10 @@
-import { Redis } from "@upstash/redis";
 import { auth } from "@/auth";
-
-const redis = new Redis({ url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN });
+import { getAnalyses, deleteAnalyse } from "@/services/analyses";
 
 export async function GET() {
   const session = await auth();
   if (!session?.user?.email) return Response.json({});
-  const analyses = (await redis.get(`analyses:${session.user.email}`)) ?? {};
+  const analyses = await getAnalyses(session.user.email);
   return Response.json(analyses);
 }
 
@@ -18,10 +16,7 @@ export async function DELETE(request) {
   const id = searchParams.get("id");
   if (!id) return Response.json({}, { status: 400 });
 
-  const key = `analyses:${session.user.email}`;
-  const existing = (await redis.get(key)) ?? {};
-  delete existing[id];
-  await redis.set(key, existing);
+  await deleteAnalyse(session.user.email, id);
 
   return Response.json({ ok: true });
 }

@@ -1,8 +1,6 @@
-import { Redis } from "@upstash/redis";
 import { auth } from "@/auth";
 import { limiters, checkRateLimit } from "@/lib/ratelimit";
-
-const redis = new Redis({ url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN });
+import { registerUser } from "@/services/social";
 
 export async function POST() {
   const session = await auth();
@@ -12,6 +10,6 @@ export async function POST() {
   if (blocked) return blocked;
 
   const { email, name, image } = session.user;
-  await redis.hset("users:registry", { [email]: JSON.stringify({ email, name, image }) });
+  await registerUser(email, name, image);
   return Response.json({ success: true });
 }

@@ -1,17 +1,12 @@
-import { Redis } from "@upstash/redis";
 import { auth } from "@/auth";
 import { sanitize } from "@/lib/validate";
 import { limiters, checkRateLimit } from "@/lib/ratelimit";
-
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL,
-  token: process.env.KV_REST_API_TOKEN,
-});
+import { getProfil, saveProfil } from "@/services/profil";
 
 export async function GET() {
   const session = await auth();
   if (!session?.user?.email) return Response.json({}, { status: 401 });
-  const profil = await redis.get(`profil:${session.user.email}`);
+  const profil = await getProfil(session.user.email);
   return Response.json(profil || {});
 }
 
@@ -27,6 +22,6 @@ export async function POST(request) {
     ville: sanitize(raw.ville, 100),
     cv: sanitize(raw.cv, 50000),
   };
-  await redis.set(`profil:${session.user.email}`, data);
+  await saveProfil(session.user.email, data);
   return Response.json({ success: true });
 }

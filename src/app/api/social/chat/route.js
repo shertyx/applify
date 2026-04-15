@@ -1,13 +1,7 @@
-import { Redis } from "@upstash/redis";
 import { auth } from "@/auth";
 import { limiters, checkRateLimit } from "@/lib/ratelimit";
 import { sanitize, isValidEmail, badRequest } from "@/lib/validate";
-
-const redis = new Redis({ url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN });
-
-function chatKey(a, b) {
-  return `chat:${[a, b].sort().join("|")}`;
-}
+import { getMessages, sendMessage } from "@/services/social";
 
 export async function GET(request) {
   const session = await auth();
@@ -17,8 +11,8 @@ export async function GET(request) {
   const friendEmail = searchParams.get("with");
   if (!friendEmail) return Response.json([]);
 
-  const messages = await redis.get(chatKey(session.user.email, friendEmail));
-  return Response.json(Array.isArray(messages) ? messages : []);
+  const messages = await getMessages(session.user.email, friendEmail);
+  return Response.json(messages);
 }
 
 export async function POST(request) {
@@ -35,47 +29,11 @@ export async function POST(request) {
   if (!isValidEmail(toEmail)) return badRequest("Email destinataire invalide");
   if (!text) return badRequest("Message vide");
 
-  // Vérifier que les deux utilisateurs sont amis
-  const friends = await redis.get(`friends:${session.user.email}`);
-  const isFriend = (Array.isArray(friends) ? friends : []).some((f) => f.email === toEmail);
-  if (!isFriend) return Response.json({ success: false, error: "Non autorisé" }, { status: 403 });
+  const from = { email: session.user.email, name: session.user.name, image: session.user.image };
+  const result = await sendMessage(from, toEmail, text);
 
-  const key = chatKey(session.user.email, toEmail);
-  const messages = await redis.get(key);
-  const newMessages = [
-    ...(Array.isArray(messages) ? messages : []),
-    {
-      id: Date.now(),
-      from: session.user.email,
-      fromName: session.user.name,
-      fromImage: session.user.image,
-      text: text.trim(),
-      date: new Date().toISOString(),
-    },
-  ];
-  // Garder les 200 derniers messages
-  const trimmed = newMessages.slice(-200);
-  await redis.set(key, trimmed);
-
-  // Notification si destinataire pas déjà notifié récemment
-  const notifs = await redis.get(`notifications:${toEmail}`);
-  const notifsList = Array.isArray(notifs) ? notifs : [];
-  const recentMsg = notifsList.find(
-    (n) => n.type === "message" && n.from.email === session.user.email && !n.read
-  );
-  if (!recentMsg) {
-    await redis.set(`notifications:${toEmail}`, [
-      ...notifsList,
-      {
-        id: Date.now(),
-        type: "message",
-        from: { email: session.user.email, name: session.user.name, image: session.user.image },
-        message: `${session.user.name} vous a envoyé un message`,
-        date: new Date().toISOString(),
-        read: false,
-      },
-    ]);
+  if (!result.success) {
+    return Response.json({ success: false, error: result.error }, { status: result.status ?? 400 });
   }
-
   return Response.json({ success: true });
 }
