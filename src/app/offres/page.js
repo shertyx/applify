@@ -170,12 +170,18 @@ export default function Offres() {
                     }}
                     title="Réinitialiser le compteur Gemini"
                   >
-                    {resetMsg ?? "reset"}
+                    reset
                   </button>
                 )}
               </div>
             );
           })}
+        </div>
+      )}
+
+      {resetMsg && (
+        <div style={{ fontSize: "11px", color: resetMsg.startsWith("Erreur") ? "var(--danger)" : "#3fb950", marginBottom: "8px" }}>
+          {resetMsg}
         </div>
       )}
 
