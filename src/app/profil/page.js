@@ -261,10 +261,62 @@ export default function Profil() {
               style={{ width: "100%" }}
             />
           </div>
-          <div style={{ position: "relative" }} ref={sugRef}>
+          <div>
             <label style={label}>Zone(s) de recherche</label>
+            {/* Input row + dropdown — position:relative uniquement ici */}
+            <div style={{ position: "relative" }} ref={sugRef}>
+              <div style={{ display: "flex", gap: "6px" }}>
+                <input
+                  id="cp-input"
+                  value={cpInput}
+                  onChange={handleCpChange}
+                  onKeyDown={handleCpKeyDown}
+                  onBlur={() => setTimeout(() => setSuggestions([]), 150)}
+                  placeholder="Paris, Roubaix, 59000..."
+                  style={{ flex: 1 }}
+                />
+                {cpInput.trim().length > 0 && (
+                  <button type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      const cur = suggestionsRef.current;
+                      if (cur.length > 0) addZone(cur[0].label);
+                      else if (/^\d{5}$/.test(cpInput.trim())) addZone(cpInput.trim());
+                      else if (cpInput.trim().length > 1) addZone(cpInput.trim());
+                    }}
+                    style={{
+                      background: "#238636", border: "1px solid #2ea043", borderRadius: "6px",
+                      color: "#fff", cursor: "pointer", fontSize: "18px", fontWeight: 600,
+                      padding: "0 12px", flexShrink: 0,
+                    }}>+</button>
+                )}
+              </div>
+              {(suggestions.length > 0 || sugLoading) && (
+                <div style={{
+                  position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 100,
+                  background: "var(--bg-secondary)", border: "1px solid var(--border)",
+                  borderRadius: "6px", overflow: "hidden", boxShadow: "0 6px 20px rgba(0,0,0,0.4)",
+                }}>
+                  {sugLoading && <div style={{ padding: "10px 12px", fontSize: "12px", color: "var(--text-muted)" }}>Recherche…</div>}
+                  {suggestions.map((s) => (
+                    <button key={s.label} type="button"
+                      onMouseDown={(e) => { e.preventDefault(); addZone(s.label); }}
+                      style={{
+                        display: "block", width: "100%", textAlign: "left",
+                        padding: "8px 12px", background: "none", border: "none",
+                        borderBottom: "1px solid var(--border)", cursor: "pointer",
+                        fontSize: "13px", color: "var(--text-primary)",
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-tertiary)"}
+                      onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+                    >{s.display}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Tags sous l'input */}
             {zones.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "6px" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginTop: "8px" }}>
                 {zones.map((z) => (
                   <span key={z} style={{
                     display: "inline-flex", alignItems: "center", gap: "4px",
@@ -275,54 +327,6 @@ export default function Profil() {
                     <button type="button" onClick={() => removeZone(z)}
                       style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0, lineHeight: 1, fontSize: "14px" }}>×</button>
                   </span>
-                ))}
-              </div>
-            )}
-            <div style={{ display: "flex", gap: "6px" }}>
-              <input
-                id="cp-input"
-                value={cpInput}
-                onChange={handleCpChange}
-                onKeyDown={handleCpKeyDown}
-                onBlur={() => setTimeout(() => setSuggestions([]), 150)}
-                placeholder="Paris, Lille, 59000..."
-                style={{ flex: 1, width: "100%" }}
-              />
-              {cpInput.trim().length > 0 && (
-                <button type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    const cur = suggestionsRef.current;
-                    if (cur.length > 0) addZone(cur[0].label);
-                    else if (/^\d{5}$/.test(cpInput.trim())) addZone(cpInput.trim());
-                    else addZone(cpInput.trim());
-                  }}
-                  style={{
-                    background: "#238636", border: "1px solid #2ea043", borderRadius: "6px",
-                    color: "#fff", cursor: "pointer", fontSize: "16px", fontWeight: 600,
-                    padding: "0 12px", flexShrink: 0, height: "36px",
-                  }}>+</button>
-              )}
-            </div>
-            {(suggestions.length > 0 || sugLoading) && (
-              <div style={{
-                position: "absolute", top: "calc(100% + 2px)", left: 0, right: 0, zIndex: 50,
-                background: "var(--bg-secondary)", border: "1px solid var(--border)",
-                borderRadius: "6px", overflow: "hidden", boxShadow: "0 4px 16px rgba(0,0,0,0.35)",
-              }}>
-                {sugLoading && <div style={{ padding: "10px 12px", fontSize: "12px", color: "var(--text-muted)" }}>Recherche…</div>}
-                {suggestions.map((s) => (
-                  <button key={s.label} type="button"
-                    onMouseDown={(e) => { e.preventDefault(); addZone(s.label); }}
-                    style={{
-                      display: "block", width: "100%", textAlign: "left",
-                      padding: "8px 12px", background: "none", border: "none",
-                      borderBottom: "1px solid var(--border)", cursor: "pointer",
-                      fontSize: "13px", color: "var(--text-primary)",
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-tertiary)"}
-                    onMouseLeave={(e) => e.currentTarget.style.background = "none"}
-                  >{s.display}</button>
                 ))}
               </div>
             )}
