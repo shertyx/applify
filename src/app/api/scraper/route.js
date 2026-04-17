@@ -307,7 +307,7 @@ export async function POST(request) {
       return Response.json({ success: false, error: `Profil incomplet (${completion}% / 60% requis) — complète ton poste, ta ville et ton CV.` }, { status: 400 });
     }
 
-    const userKey = session?.user?.email ?? `ip:${getClientIp(request)}`;
+    const userKey = session?.user?.email ?? getGuestKey(request);
     const keywords = await generateKeywords(profil, userKey);
     if (!keywords) {
       return Response.json({ success: false, error: "Renseigne ton poste recherché dans ton profil pour que l'on trouve les bonnes offres." }, { status: 400 });
