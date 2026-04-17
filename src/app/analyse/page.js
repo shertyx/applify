@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
+import { getGuestId } from "@/lib/guestId";
 
 export default function Analyse() {
   const searchParams = useSearchParams();
@@ -69,7 +70,7 @@ export default function Analyse() {
     try {
       const res = await fetch("/api/analyse", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-guest-id": getGuestId() },
         body: JSON.stringify({ offre, offreId }),
       });
       const data = await res.json();

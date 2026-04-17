@@ -36,6 +36,14 @@ export function getClientIp(request) {
   return request.headers.get("x-real-ip") || "unknown";
 }
 
+// Prefer a client-provided UUID (x-guest-id) over IP so all guests aren't
+// bucketed under the same "ip:unknown" key when headers aren't forwarded.
+export function getGuestKey(request) {
+  const guestId = request.headers.get("x-guest-id");
+  if (guestId && guestId !== "unknown") return `guest:${guestId}`;
+  return `ip:${getClientIp(request)}`;
+}
+
 export async function checkRateLimit(limiter, identifier) {
   const { success, remaining } = await limiter.limit(identifier);
   if (!success) {

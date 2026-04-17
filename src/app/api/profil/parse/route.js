@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { limiters, guestLimiters, checkRateLimit, getClientIp } from "@/lib/ratelimit";
+import { limiters, guestLimiters, checkRateLimit, getGuestKey } from "@/lib/ratelimit";
 
 export async function POST(request) {
   const session = await auth();
@@ -13,7 +13,7 @@ export async function POST(request) {
       const blocked = await checkRateLimit(limiters.parse, session.user.email);
       if (blocked) return blocked;
     } else {
-      const blocked = await checkRateLimit(guestLimiters.parse, `ip:${getClientIp(request)}`);
+      const blocked = await checkRateLimit(guestLimiters.parse, getGuestKey(request));
       if (blocked) return blocked;
     }
 

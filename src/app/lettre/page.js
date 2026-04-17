@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { getGuestId } from "@/lib/guestId";
 
 function LettreForm() {
   const searchParams = useSearchParams();
@@ -56,7 +57,7 @@ function LettreForm() {
     try {
       const res = await fetch("/api/lettre", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-guest-id": getGuestId() },
         body: JSON.stringify({ entreprise, poste, offre, ton }),
       });
       const data = await res.json();

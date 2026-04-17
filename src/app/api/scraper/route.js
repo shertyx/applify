@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { limiters, guestLimiters, checkRateLimit, getClientIp } from "@/lib/ratelimit";
+import { limiters, guestLimiters, checkRateLimit, getGuestKey } from "@/lib/ratelimit";
 import redis from "@/lib/redis";
 import Groq from "groq-sdk";
 import { getProfil } from "@/services/profil";
@@ -285,7 +285,7 @@ export async function POST(request) {
     const blocked = await checkRateLimit(limiters.scraper, session.user.email);
     if (blocked) return blocked;
   } else {
-    const blocked = await checkRateLimit(guestLimiters.scraper, `ip:${getClientIp(request)}`);
+    const blocked = await checkRateLimit(guestLimiters.scraper, getGuestKey(request));
     if (blocked) return blocked;
   }
 

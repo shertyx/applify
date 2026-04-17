@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { getGuestId } from "@/lib/guestId";
 import { useApp } from "@/context/AppContext";
 import { useRouter } from "next/navigation";
 
@@ -100,7 +101,7 @@ export default function Offres() {
       }
       const res = await fetch("/api/scraper", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(!session?.user?.email && { "x-guest-id": getGuestId() }) },
         body: JSON.stringify(guestProfil ? { guestProfil } : {}),
       });
       const data = await res.json();

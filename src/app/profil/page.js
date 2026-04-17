@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
+import { getGuestId } from "@/lib/guestId";
 import Link from "next/link";
 
 export default function Profil() {
@@ -48,7 +49,7 @@ export default function Profil() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/profil/parse", { method: "POST", body: formData });
+      const res = await fetch("/api/profil/parse", { method: "POST", body: formData, headers: { "x-guest-id": getGuestId() } });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setCv(data.text);

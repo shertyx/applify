@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { auth } from "@/auth";
-import { limiters, guestLimiters, checkRateLimit, getClientIp } from "@/lib/ratelimit";
+import { limiters, guestLimiters, checkRateLimit, getGuestKey } from "@/lib/ratelimit";
 import { sanitize, badRequest } from "@/lib/validate";
 import { getProfil } from "@/services/profil";
 import { incrementGeminiQuota } from "@/services/quota";
@@ -13,7 +13,7 @@ export async function POST(request) {
       const blocked = await checkRateLimit(limiters.ai, session.user.email);
       if (blocked) return blocked;
     } else {
-      const blocked = await checkRateLimit(guestLimiters.ai, `ip:${getClientIp(request)}`);
+      const blocked = await checkRateLimit(guestLimiters.ai, getGuestKey(request));
       if (blocked) return blocked;
     }
 
