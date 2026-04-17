@@ -101,7 +101,7 @@ async function generateKeywords(profil, userEmail) {
   if (!profil?.poste) return null;
 
   // Cache Redis basé sur le poste — évite de rappeler Gemini à chaque scraping
-  const cacheKey = `keywords_v4:${userEmail}:${Buffer.from(profil.poste).toString("base64").slice(0, 20)}`;
+  const cacheKey = `keywords_v5:${userEmail}:${Buffer.from(profil.poste).toString("base64").slice(0, 20)}`;
   const cached = await redis.get(cacheKey);
   if (Array.isArray(cached) && cached.length > 0) {
     console.log(`[KEYWORDS] Cache: ${cached.join(", ")}`);
