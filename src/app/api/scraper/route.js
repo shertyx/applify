@@ -165,11 +165,10 @@ async function scrapeFranceTravail(token, keywords, location) {
     console.error("[FT] Token manquant, skip.");
     return [];
   }
-  const ville = location.includes(",") ? location.split(",")[0].trim() : location;
   const results = await Promise.all(keywords.map(async (keyword) => {
     try {
       const res = await fetch(
-        `https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search?motsCles=${encodeURIComponent(keyword + " " + ville)}&nbResultats=20`,
+        `https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search?motsCles=${encodeURIComponent(keyword)}&nbResultats=20`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       await incrementFranceTravailQuota();
@@ -234,7 +233,7 @@ async function scrapeJSearch(keywords, location) {
   }
   const results = await Promise.all(keywords.map(async (keyword) => {
     try {
-      const url = `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(keyword)}&page=1&num_pages=2`;
+      const url = `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(keyword + " " + location)}&page=1&num_pages=2&country=fr`;
       const res = await fetch(url, {
         headers: {
           "X-RapidAPI-Key": process.env.JSEARCH_API_KEY,
