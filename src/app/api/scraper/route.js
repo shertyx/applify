@@ -101,7 +101,7 @@ async function generateKeywords(profil, userEmail) {
   if (!profil?.poste) return null;
 
   // Cache Redis basé sur le poste — évite de rappeler Gemini à chaque scraping
-  const cacheKey = `keywords_v5:${userEmail}:${Buffer.from(profil.poste).toString("base64").slice(0, 20)}`;
+  const cacheKey = `keywords_v6:${userEmail}:${Buffer.from(profil.poste).toString("base64").slice(0, 20)}`;
   const cached = await redis.get(cacheKey);
   if (Array.isArray(cached) && cached.length > 0) {
     console.log(`[KEYWORDS] Cache: ${cached.join(", ")}`);
@@ -115,7 +115,7 @@ async function generateKeywords(profil, userEmail) {
 ${profil.cv ? `Contexte CV : ${profil.cv.slice(0, 300)}` : ""}
 Réponds UNIQUEMENT avec un tableau JSON de 5 strings. Ne génère QUE des variantes de "${profil.poste}". Format : ["variante1","variante2","variante3","variante4","variante5"]`;
     const completion = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+      model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
     });

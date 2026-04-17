@@ -106,8 +106,7 @@ export default function Offres() {
       });
       const data = await res.json();
       if (data.success) {
-        const { ft = 0, gj = 0, js = 0, keywords = [] } = data.debug ?? {};
-        setScrapeMsg(`Scraping terminé ! FT:${ft} GJ:${gj} JS:${js} — mots-clés: ${keywords.join(", ")}`);
+        setScrapeMsg("Scraping terminé !");
         await fetchOffres();
       } else {
         setScrapeMsg("Erreur : " + data.error);
