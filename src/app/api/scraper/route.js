@@ -3,7 +3,7 @@ import { limiters, guestLimiters, checkRateLimit, getGuestKey } from "@/lib/rate
 import redis from "@/lib/redis";
 import Groq from "groq-sdk";
 import { getProfil } from "@/services/profil";
-import { getDeptFromVille } from "@/lib/villes";
+import { getDeptsFromPostalCodes, getLocationLabel } from "@/lib/villes";
 import { saveOffres } from "@/services/offres";
 import {
   incrementFranceTravailQuota,
@@ -140,8 +140,7 @@ Réponds UNIQUEMENT avec un tableau JSON de 5 strings. Ne génère QUE des varia
 }
 
 function getLocationFromProfile(profil) {
-  if (!profil?.ville) return DEFAULT_LOCATION;
-  return profil.ville + ", France";
+  return getLocationLabel(profil?.ville) ?? DEFAULT_LOCATION;
 }
 
 async function getTokenFT() {
@@ -164,23 +163,25 @@ async function getTokenFT() {
   return data.access_token;
 }
 
-async function scrapeFranceTravail(token, keywords, location, dept) {
+async function scrapeFranceTravail(token, keywords, location, depts) {
   if (!token) {
     console.error("[FT] Token manquant, skip.");
     return [];
   }
-  const deptParam = dept ? `&departement=${dept}` : "";
-  const results = await Promise.all(keywords.map(async (keyword) => {
+  // Search each dept separately (max 3 to avoid too many calls), fall back to nationwide
+  const targetDepts = depts?.length > 0 ? depts.slice(0, 3) : [null];
+  const results = await Promise.all(targetDepts.flatMap((dept) => keywords.map(async (keyword) => {
     try {
+      const deptParam = dept ? `&departement=${dept}` : "";
       const res = await fetch(
         `https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search?motsCles=${encodeURIComponent(keyword)}&nbResultats=20${deptParam}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       await incrementFranceTravailQuota();
       const text = await res.text();
-      if (!text) { console.log(`[FT] "${keyword}": réponse vide (status ${res.status})`); return []; }
+      if (!text) { console.log(`[FT] "${keyword}" dept=${dept ?? "all"}: réponse vide (status ${res.status})`); return []; }
       const data = JSON.parse(text);
-      console.log(`[FT] "${keyword}": status=${res.status}, resultats=${data.resultats?.length ?? 0}`, data.message ?? "");
+      console.log(`[FT] "${keyword}" dept=${dept ?? "all"}: status=${res.status}, resultats=${data.resultats?.length ?? 0}`, data.message ?? "");
       return (data.resultats || []).map((o) => ({
         id: `ft-${o.id}`,
         titre: o.intitule ?? "N/A",
@@ -196,7 +197,7 @@ async function scrapeFranceTravail(token, keywords, location, dept) {
       console.error(`[FT] Erreur "${keyword}":`, e.message);
       return [];
     }
-  }));
+  })));
   return results.flat();
 }
 
@@ -320,11 +321,11 @@ export async function POST(request) {
 
     console.log(`[SCRAPER] User: ${userKey} | Keywords: ${keywords.join(", ")} | Location: ${location}`);
 
-    const dept = getDeptFromVille(profil?.ville);
-    console.log(`[SCRAPER] dept=${dept ?? "nationwide"}`);
+    const depts = getDeptsFromPostalCodes(profil?.ville);
+    console.log(`[SCRAPER] depts=${depts.length > 0 ? depts.join(",") : "nationwide"}`);
     const token = await getTokenFT();
     const [ftOffres, gjOffres, jsOffres] = await Promise.all([
-      scrapeFranceTravail(token, keywords, location, dept),
+      scrapeFranceTravail(token, keywords, location, depts),
       scrapeGoogleJobs(keywords, location),
       scrapeJSearch(keywords, location),
     ]);

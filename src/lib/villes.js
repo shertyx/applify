@@ -1,58 +1,23 @@
-// Major French cities with their France Travail department codes.
-// The dept code is used for the `departement` param in the FT API.
-export const VILLES = [
-  { label: "Paris",            dept: "75" },
-  { label: "Lyon",             dept: "69" },
-  { label: "Marseille",        dept: "13" },
-  { label: "Toulouse",         dept: "31" },
-  { label: "Nice",             dept: "06" },
-  { label: "Nantes",           dept: "44" },
-  { label: "Montpellier",      dept: "34" },
-  { label: "Strasbourg",       dept: "67" },
-  { label: "Bordeaux",         dept: "33" },
-  { label: "Lille",            dept: "59" },
-  { label: "Rennes",           dept: "35" },
-  { label: "Reims",            dept: "51" },
-  { label: "Saint-Étienne",    dept: "42" },
-  { label: "Toulon",           dept: "83" },
-  { label: "Le Havre",         dept: "76" },
-  { label: "Grenoble",         dept: "38" },
-  { label: "Dijon",            dept: "21" },
-  { label: "Angers",           dept: "49" },
-  { label: "Nîmes",            dept: "30" },
-  { label: "Villeurbanne",     dept: "69" },
-  { label: "Clermont-Ferrand", dept: "63" },
-  { label: "Aix-en-Provence",  dept: "13" },
-  { label: "Brest",            dept: "29" },
-  { label: "Tours",            dept: "37" },
-  { label: "Amiens",           dept: "80" },
-  { label: "Limoges",          dept: "87" },
-  { label: "Rouen",            dept: "76" },
-  { label: "Metz",             dept: "57" },
-  { label: "Nancy",            dept: "54" },
-  { label: "Perpignan",        dept: "66" },
-  { label: "Caen",             dept: "14" },
-  { label: "Orléans",          dept: "45" },
-  { label: "Mulhouse",         dept: "68" },
-  { label: "Besançon",         dept: "25" },
-  { label: "Valenciennes",     dept: "59" },
-  { label: "Pau",              dept: "64" },
-  { label: "Avignon",          dept: "84" },
-  { label: "Dunkerque",        dept: "59" },
-  { label: "Lorient",          dept: "56" },
-  { label: "Poitiers",         dept: "86" },
-  { label: "La Rochelle",      dept: "17" },
-  { label: "Roubaix",          dept: "59" },
-  { label: "Tourcoing",        dept: "59" },
-  { label: "Montreuil",        dept: "93" },
-  { label: "Saint-Denis",      dept: "93" },
-  { label: "Argenteuil",       dept: "95" },
-  { label: "Colmar",           dept: "68" },
-  { label: "Bayonne",          dept: "64" },
-  { label: "Troyes",           dept: "10" },
-];
+// Extract unique France Travail department codes from a comma-separated
+// string of French postal codes (e.g. "75001,59000" → ["75","59"]).
+// Special cases: Corsica (20xxx → 2A/2B), DOM-TOM (97x → 3 digits).
+export function getDeptsFromPostalCodes(villeStr) {
+  if (!villeStr?.trim()) return [];
+  const codes = villeStr.split(",").map((s) => s.trim()).filter((s) => /^\d{5}$/.test(s));
+  const depts = [...new Set(codes.map((pc) => {
+    if (pc.startsWith("971") || pc.startsWith("972") || pc.startsWith("973") ||
+        pc.startsWith("974") || pc.startsWith("976")) return pc.slice(0, 3);
+    if (pc >= "20000" && pc <= "20190") return "2A";
+    if (pc >= "20200" && pc <= "20999") return "2B";
+    return pc.slice(0, 2);
+  }))];
+  return depts;
+}
 
-export function getDeptFromVille(villeLabel) {
-  const found = VILLES.find((v) => v.label.toLowerCase() === villeLabel?.toLowerCase());
-  return found?.dept ?? null;
+// Returns the location string for JSearch / Google Jobs queries.
+// Uses the postal codes themselves for better matching.
+export function getLocationLabel(villeStr) {
+  if (!villeStr?.trim()) return "France";
+  const codes = villeStr.split(",").map((s) => s.trim()).filter(Boolean);
+  return codes.slice(0, 2).join(", ") + ", France";
 }

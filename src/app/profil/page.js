@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { getGuestId } from "@/lib/guestId";
-import { VILLES } from "@/lib/villes";
 import Link from "next/link";
 
 export default function Profil() {
@@ -18,6 +17,7 @@ export default function Profil() {
   const [saveError, setSaveError] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [parsing, setParsing] = useState(false);
+  const [cpInput, setCpInput] = useState("");
   const [parseError, setParseError] = useState(null);
 
   useEffect(() => {
@@ -97,6 +97,29 @@ export default function Profil() {
     }
   }
 
+  const codesPostaux = ville ? ville.split(",").map((s) => s.trim()).filter(Boolean) : [];
+
+  function addCp(raw) {
+    const cp = raw.trim().replace(/\s/g, "");
+    if (!/^\d{5}$/.test(cp)) return; // must be exactly 5 digits
+    if (codesPostaux.includes(cp)) return;
+    setVille([...codesPostaux, cp].join(","));
+    setCpInput("");
+  }
+
+  function removeCp(cp) {
+    setVille(codesPostaux.filter((c) => c !== cp).join(","));
+  }
+
+  function handleCpKeyDown(e) {
+    if (e.key === "Enter" || e.key === "," || e.key === " ") {
+      e.preventDefault();
+      addCp(cpInput);
+    } else if (e.key === "Backspace" && cpInput === "" && codesPostaux.length > 0) {
+      removeCp(codesPostaux[codesPostaux.length - 1]);
+    }
+  }
+
   const label = { fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.06em" };
   const card = { background: "var(--bg-secondary)", border: "1px solid var(--border)", borderRadius: "8px", padding: "20px", marginBottom: "16px" };
 
@@ -110,7 +133,7 @@ export default function Profil() {
   const missing = [
     !nom.trim() && "Nom complet",
     !poste.trim() && "Poste recherché",
-    !ville.trim() && "Ville",
+    !ville.trim() && "Code postal",
     cv.trim().length <= 100 && "CV (100+ caractères)",
   ].filter(Boolean);
 
@@ -202,17 +225,49 @@ export default function Profil() {
             />
           </div>
           <div>
-            <label style={label}>Ville</label>
-            <select
-              value={ville}
-              onChange={(e) => setVille(e.target.value)}
-              style={{ width: "100%" }}
+            <label style={label}>Code(s) postal(aux)</label>
+            <div
+              onClick={() => document.getElementById("cp-input").focus()}
+              style={{
+                display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center",
+                width: "100%", minHeight: "36px", padding: "4px 8px",
+                background: "var(--bg-primary)", border: "1px solid var(--border)",
+                borderRadius: "6px", cursor: "text", boxSizing: "border-box",
+              }}
             >
-              <option value="">— Choisir une ville —</option>
-              {VILLES.map((v) => (
-                <option key={v.label} value={v.label}>{v.label}</option>
+              {codesPostaux.map((cp) => (
+                <span key={cp} style={{
+                  display: "inline-flex", alignItems: "center", gap: "4px",
+                  background: "var(--bg-tertiary)", border: "1px solid var(--border)",
+                  borderRadius: "4px", padding: "2px 8px", fontSize: "12px",
+                  color: "var(--text-primary)", whiteSpace: "nowrap",
+                }}>
+                  {cp}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); removeCp(cp); }}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0, lineHeight: 1, fontSize: "14px" }}
+                  >×</button>
+                </span>
               ))}
-            </select>
+              <input
+                id="cp-input"
+                value={cpInput}
+                onChange={(e) => setCpInput(e.target.value)}
+                onKeyDown={handleCpKeyDown}
+                onBlur={() => addCp(cpInput)}
+                placeholder={codesPostaux.length === 0 ? "75001, 59000..." : ""}
+                maxLength={5}
+                style={{
+                  border: "none", outline: "none", background: "transparent",
+                  fontSize: "13px", color: "var(--text-primary)", width: "80px",
+                  minWidth: "60px", padding: "2px 0",
+                }}
+              />
+            </div>
+            <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px", marginBottom: 0 }}>
+              Tape un code postal + Entrée. Plusieurs zones possibles.
+            </p>
           </div>
         </div>
       </div>
