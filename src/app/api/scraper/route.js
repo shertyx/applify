@@ -292,11 +292,12 @@ export async function POST(request) {
   try {
     const profil = session?.user?.email ? await getProfil(session.user.email) : null;
 
+    const cvLen = profil?.cv?.trim()?.length ?? 0;
     const completion =
       (profil?.nom?.trim() ? 15 : 0) +
       (profil?.poste?.trim() ? 30 : 0) +
       (profil?.ville?.trim() ? 25 : 0) +
-      ((profil?.cv?.trim().length ?? 0) > 100 ? 30 : (profil?.cv?.trim().length ?? 0) > 0 ? 15 : 0);
+      (cvLen > 100 ? 30 : cvLen > 0 ? 15 : 0);
 
     if (completion < 60) {
       return Response.json({ success: false, error: `Profil incomplet (${completion}% / 60% requis) — complète ton poste, ta ville et ton CV.` }, { status: 400 });

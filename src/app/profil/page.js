@@ -13,6 +13,7 @@ export default function Profil() {
   const [ville, setVille] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState(null);
@@ -76,14 +77,22 @@ export default function Profil() {
       setTimeout(() => setSaved(false), 2500);
       return;
     }
-    await fetch("/api/profil", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cv, nom, poste, ville }),
-    });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    try {
+      const res = await fetch("/api/profil", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cv, nom, poste, ville }),
+      });
+      if (!res.ok) throw new Error();
+      setSaved(true);
+      setSaveError(false);
+      setTimeout(() => setSaved(false), 2500);
+    } catch {
+      setSaveError(true);
+      setTimeout(() => setSaveError(false), 4000);
+    } finally {
+      setSaving(false);
+    }
   }
 
   const label = { fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.06em" };
@@ -255,15 +264,15 @@ export default function Profil() {
           disabled={saving}
           style={{
             fontSize: "13px", padding: "8px 20px",
-            background: saved ? "rgba(63,185,80,0.15)" : saving ? "var(--bg-tertiary)" : "#238636",
-            border: "1px solid " + (saved ? "rgba(63,185,80,0.4)" : saving ? "var(--border)" : "#2ea043"),
+            background: saveError ? "rgba(248,81,73,0.15)" : saved ? "rgba(63,185,80,0.15)" : saving ? "var(--bg-tertiary)" : "#238636",
+            border: "1px solid " + (saveError ? "rgba(248,81,73,0.4)" : saved ? "rgba(63,185,80,0.4)" : saving ? "var(--border)" : "#2ea043"),
             borderRadius: "6px",
-            color: saved ? "#3fb950" : saving ? "var(--text-muted)" : "#fff",
+            color: saveError ? "#f85149" : saved ? "#3fb950" : saving ? "var(--text-muted)" : "#fff",
             cursor: saving ? "not-allowed" : "pointer",
             transition: "all 0.2s",
           }}
         >
-          {saved ? "Sauvegardé !" : saving ? "Sauvegarde..." : "Sauvegarder"}
+          {saveError ? "Erreur — réessaie" : saved ? "Sauvegardé !" : saving ? "Sauvegarde..." : "Sauvegarder"}
         </button>
 
         {!isGuest && (
